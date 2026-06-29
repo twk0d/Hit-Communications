@@ -5,6 +5,11 @@ export type ApplicationErrorCode =
   | 'UNAUTHORIZED'
   | 'CONFLICT';
 
+export type FieldValidationError = {
+  field: string;
+  message: string;
+};
+
 export abstract class ApplicationError extends Error {
   protected constructor(
     message: string,
@@ -22,7 +27,10 @@ export class ResourceNotFoundError extends ApplicationError {
 }
 
 export class ValidationError extends ApplicationError {
-  constructor(message = 'Validation failed') {
+  constructor(
+    message = 'Validation failed',
+    public readonly errors: FieldValidationError[] = [],
+  ) {
     super(message, 'VALIDATION');
   }
 }

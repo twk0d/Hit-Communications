@@ -1,7 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
 import { Response } from 'express';
 
-import { ApplicationError } from '../application/errors/application.error';
+import { ApplicationError, ValidationError } from '../application/errors/application.error';
 
 const applicationErrorStatus: Record<ApplicationError['code'], number> = {
   RESOURCE_NOT_FOUND: 404,
@@ -37,6 +37,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       response.status(statusCode).json({
         statusCode,
         message: exception.message,
+        ...(exception instanceof ValidationError && exception.errors.length > 0
+          ? { errors: exception.errors }
+          : {}),
       });
       return;
     }

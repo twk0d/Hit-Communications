@@ -429,3 +429,138 @@ Diretriz:
 - Nao expor invariantes internas do aggregate para o frontend.
 - Usar Zod no frontend como validacao de experiencia do usuario.
 - Manter o backend como fonte final de verdade para regras de negocio.
+
+## 10. Fonte de Tempo Distribuida e Auditoria Temporal
+
+### O que
+
+Avaliar uma estrategia mais robusta para fonte de tempo em ambientes com multiplas instancias, servidores ou servicos distribuidos.
+
+No MVP, a aplicacao usa uma abstracao simples de clock:
+
+```txt
+SystemClock -> hora da maquina onde o processo Node.js roda
+FixedClock  -> hora fixa para testes automatizados
+```
+
+Essa abordagem e suficiente para o monolito modular atual, desde que datas sejam armazenadas em UTC e expostas em ISO 8601.
+
+### Por que
+
+Em sistemas distribuidos, diferentes maquinas podem ter pequenas diferencas de relogio.
+
+Isso pode afetar regras e auditorias que dependem de tempo, como:
+
+- `resolvedAt`.
+- `deletedAt`.
+- `changedAt` do historico.
+- calculo de SLA.
+- expiracao de tokens ou convites.
+- ordenacao de eventos.
+- reconciliacao entre servicos.
+
+Mesmo com NTP, ainda pode haver clock skew, latencia de rede e diferencas pequenas entre servidores.
+
+### Beneficios
+
+- Melhora consistencia temporal entre instancias.
+- Reduz risco de eventos parecerem fora de ordem por diferenca de relogio.
+- Fortalece auditoria em cenarios com multiplas replicas.
+- Facilita evoluir para mensageria duravel, outbox e processamento assincrono.
+- Permite testar regras de tempo sem depender do relogio real da maquina.
+
+### Opcoes Futuras
+
+#### 1. Manter `SystemClock` com disciplina operacional
+
+Continuar usando a hora da aplicacao, mas exigir:
+
+- servidores com NTP ativo.
+- containers/hosts com timezone controlado.
+- armazenamento sempre em UTC.
+- exposicao sempre em ISO 8601.
+- tolerancia a pequenas diferencas de tempo em regras sensiveis.
+
+Essa opcao tende a ser suficiente para aplicacoes monoliticas ou com baixa distribuicao.
+
+#### 2. Usar horario do banco para campos persistidos criticos
+
+Para campos de auditoria persistidos, considerar o horario do PostgreSQL como fonte de verdade.
+
+Exemplos:
+
+```txt
+created_at
+updated_at
+changed_at
+deleted_at
+resolved_at
+```
+
+Vantagem:
+
+- todos os writes persistidos usam o mesmo relogio: o do banco.
+
+Trade-off:
+
+- use cases deixam de controlar diretamente algumas datas.
+- testes precisam considerar valores gerados pela infraestrutura.
+- pode exigir ajustes no mapper/repository.
+
+#### 3. Criar um `DatabaseClock`
+
+Implementar uma nova versao da abstracao `Clock` que consulta o banco:
+
+```txt
+DatabaseClock -> SELECT now()
+```
+
+Vantagem:
+
+- mantem a abstracao de clock.
+- permite trocar a fonte de tempo sem espalhar mudancas.
+
+Trade-off:
+
+- adiciona round-trip ao banco.
+- pode ser excessivo para fluxos simples.
+
+#### 4. Separar timestamp de ordenacao
+
+Em fluxos com eventos, filas ou outbox, nao depender apenas de timestamp para ordenar acontecimentos.
+
+Alternativas:
+
+- sequencias.
+- versoes de aggregate.
+- ids ordenaveis.
+- ordem de insercao na outbox.
+- offsets da fila.
+
+Vantagem:
+
+- evita problemas quando dois eventos acontecem quase ao mesmo tempo ou em servidores diferentes.
+
+### Trade-offs
+
+- Aumenta complexidade arquitetural.
+- Pode adicionar dependencia maior do banco.
+- Pode tornar testes de integracao mais importantes.
+- Pode ser exagerado para o MVP do teste tecnico.
+- Exige decisao clara sobre quem e a fonte de verdade do tempo: aplicacao, banco ou infraestrutura externa.
+
+### Decisao Para o MVP
+
+Manter `SystemClock` usando a hora da maquina da aplicacao.
+
+Justificativa:
+
+- o projeto e um monolito modular.
+- o banco e unico.
+- as regras atuais nao exigem precisao distribuida.
+- a abstracao `Clock` ja permite evoluir a fonte de tempo depois.
+- testes podem usar `FixedClock` para manter previsibilidade.
+
+Regra importante:
+
+- datas devem continuar armazenadas em UTC e expostas em ISO 8601.
