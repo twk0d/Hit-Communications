@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { IncidentsModule } from './modules/incidents/incidents.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { UsersModule } from './modules/users/users.module';
     PrismaModule,
     UsersModule,
     AuthModule,
+    IncidentsModule,
   ],
 })
 export class AppModule {}
