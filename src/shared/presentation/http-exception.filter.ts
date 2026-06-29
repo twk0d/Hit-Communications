@@ -37,9 +37,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       response.status(statusCode).json({
         statusCode,
         message: exception.message,
-        ...(exception instanceof ValidationError && exception.errors.length > 0
-          ? { errors: exception.errors }
-          : {}),
+        ...(exception instanceof ValidationError ? { errors: exception.errors } : {}),
       });
       return;
     }

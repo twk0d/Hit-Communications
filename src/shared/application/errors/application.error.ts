@@ -28,8 +28,8 @@ export class ResourceNotFoundError extends ApplicationError {
 
 export class ValidationError extends ApplicationError {
   constructor(
+    public readonly errors: FieldValidationError[],
     message = 'Validation failed',
-    public readonly errors: FieldValidationError[] = [],
   ) {
     super(message, 'VALIDATION');
   }

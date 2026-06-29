@@ -1,3 +1,5 @@
+import { FieldValidationError, ValidationError } from '../errors/application.error';
+
 export const DEFAULT_PAGE = 1;
 export const DEFAULT_LIMIT = 10;
 export const MAX_LIMIT = 100;
@@ -28,9 +30,13 @@ export type PaginatedResult<TData> = {
 export function normalizePaginationParams(
   params: PaginationParams = {},
 ): NormalizedPaginationParams {
-  const page = normalizePositiveInteger(params.page, DEFAULT_PAGE);
-  const requestedLimit = normalizePositiveInteger(params.limit, DEFAULT_LIMIT);
-  const limit = Math.min(requestedLimit, MAX_LIMIT);
+  const errors: FieldValidationError[] = [];
+  const page = normalizePage(params.page, errors);
+  const limit = normalizeLimit(params.limit, errors);
+
+  if (errors.length > 0) {
+    throw new ValidationError(errors);
+  }
 
   return {
     page,
@@ -59,10 +65,48 @@ export function createPaginatedResult<TData>(
   };
 }
 
-function normalizePositiveInteger(value: number | undefined, fallback: number): number {
-  if (value === undefined || !Number.isFinite(value) || value < 1) {
-    return fallback;
+function normalizePage(
+  value: number | undefined,
+  errors: FieldValidationError[],
+): number {
+  if (value === undefined) {
+    return DEFAULT_PAGE;
   }
 
-  return Math.trunc(value);
+  if (!Number.isInteger(value) || value < 1) {
+    errors.push({
+      field: 'page',
+      message: 'Page must be a positive integer',
+    });
+    return DEFAULT_PAGE;
+  }
+
+  return value;
+}
+
+function normalizeLimit(
+  value: number | undefined,
+  errors: FieldValidationError[],
+): number {
+  if (value === undefined) {
+    return DEFAULT_LIMIT;
+  }
+
+  if (!Number.isInteger(value) || value < 1) {
+    errors.push({
+      field: 'limit',
+      message: 'Limit must be a positive integer',
+    });
+    return DEFAULT_LIMIT;
+  }
+
+  if (value > MAX_LIMIT) {
+    errors.push({
+      field: 'limit',
+      message: `Limit must be less than or equal to ${MAX_LIMIT}`,
+    });
+    return MAX_LIMIT;
+  }
+
+  return value;
 }

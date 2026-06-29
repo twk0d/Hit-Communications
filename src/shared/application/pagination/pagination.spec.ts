@@ -1,10 +1,10 @@
 import {
   DEFAULT_LIMIT,
   DEFAULT_PAGE,
-  MAX_LIMIT,
   createPaginatedResult,
   normalizePaginationParams,
 } from './pagination';
+import { ValidationError } from '../errors/application.error';
 
 describe('pagination helpers', () => {
   it('uses default page and limit when params are absent', () => {
@@ -15,20 +15,35 @@ describe('pagination helpers', () => {
     });
   });
 
-  it('caps limit at the approved maximum', () => {
-    expect(normalizePaginationParams({ page: 2, limit: 500 })).toEqual({
-      page: 2,
-      limit: MAX_LIMIT,
-      offset: MAX_LIMIT,
-    });
+  it('throws ValidationError when page is invalid', () => {
+    expect(() => normalizePaginationParams({ page: 0 })).toThrow(ValidationError);
   });
 
-  it('falls back to defaults for invalid numeric values', () => {
-    expect(normalizePaginationParams({ page: 0, limit: -1 })).toEqual({
-      page: DEFAULT_PAGE,
-      limit: DEFAULT_LIMIT,
-      offset: 0,
-    });
+  it('throws ValidationError when limit is invalid', () => {
+    expect(() => normalizePaginationParams({ limit: -1 })).toThrow(ValidationError);
+  });
+
+  it('throws ValidationError when limit is greater than the approved maximum', () => {
+    expect(() => normalizePaginationParams({ limit: 101 })).toThrow(ValidationError);
+  });
+
+  it('reports all invalid pagination fields together', () => {
+    try {
+      normalizePaginationParams({ page: 0, limit: 101 });
+      fail('Expected pagination validation to fail');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ValidationError);
+      expect((error as ValidationError).errors).toEqual([
+        {
+          field: 'page',
+          message: 'Page must be a positive integer',
+        },
+        {
+          field: 'limit',
+          message: 'Limit must be less than or equal to 100',
+        },
+      ]);
+    }
   });
 
   it('creates the standard paginated response envelope', () => {
