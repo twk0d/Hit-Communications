@@ -1,0 +1,8 @@
+export enum IncidentCategory {
+  SYSTEM = 'SYSTEM',
+  NETWORK = 'NETWORK',
+  INFRASTRUCTURE = 'INFRASTRUCTURE',
+  ACCESS = 'ACCESS',
+  DATA = 'DATA',
+  PROCESS = 'PROCESS',
+}

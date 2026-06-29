@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CANCELED
+}
+
+enum IncidentPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentCategory {
+  SYSTEM
+  NETWORK
+  INFRASTRUCTURE
+  ACCESS
+  DATA
+  PROCESS
+}
+
+model User {
+  id               String            @id @default(uuid()) @db.Uuid
+  name             String            @db.VarChar(120)
+  email            String            @unique @db.VarChar(255)
+  passwordHash     String            @map("password_hash") @db.VarChar(255)
+  role             UserRole          @default(USER)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt        DateTime?         @map("deleted_at") @db.Timestamptz(3)
+  assignedIncidents Incident[]        @relation("IncidentAssignee")
+  incidentChanges  IncidentHistory[] @relation("IncidentHistoryChangedBy")
+
+  @@map("users")
+}
+
+model Incident {
+  id          String             @id @default(uuid()) @db.Uuid
+  title       String             @db.VarChar(160)
+  description String             @db.Text
+  category    IncidentCategory
+  priority    IncidentPriority
+  status      IncidentStatus     @default(OPEN)
+  assigneeId  String             @map("assignee_id") @db.Uuid
+  assignee    User               @relation("IncidentAssignee", fields: [assigneeId], references: [id])
+  histories   IncidentHistory[]
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  resolvedAt  DateTime?          @map("resolved_at") @db.Timestamptz(3)
+  deletedAt   DateTime?          @map("deleted_at") @db.Timestamptz(3)
+
+  @@index([assigneeId])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([createdAt])
+  @@index([resolvedAt])
+  @@index([deletedAt])
+  @@map("incidents")
+}
+
+model IncidentHistory {
+  id          String   @id @default(uuid()) @db.Uuid
+  incidentId  String   @map("incident_id") @db.Uuid
+  incident    Incident @relation(fields: [incidentId], references: [id])
+  field       String   @db.VarChar(80)
+  oldValue    String?  @map("old_value") @db.Text
+  newValue    String?  @map("new_value") @db.Text
+  changedById String   @map("changed_by_id") @db.Uuid
+  changedBy   User     @relation("IncidentHistoryChangedBy", fields: [changedById], references: [id])
+  changedAt   DateTime @default(now()) @map("changed_at") @db.Timestamptz(3)
+
+  @@index([incidentId])
+  @@index([changedById])
+  @@index([changedAt])
+  @@map("incident_history")
+}
