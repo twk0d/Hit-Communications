@@ -17,8 +17,11 @@ const activeUser = User.create({
 
 function makeRepository(user: User | null): UsersRepository {
   return {
+    create: jest.fn(),
     findMany: jest.fn(),
     findById: jest.fn().mockResolvedValue(user),
+    findByEmail: jest.fn(),
+    findByEmailIncludingDeleted: jest.fn(),
   };
 }
 

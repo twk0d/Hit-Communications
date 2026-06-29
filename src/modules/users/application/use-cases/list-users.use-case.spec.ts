@@ -24,8 +24,11 @@ function makeUser(params: {
 
 function makeRepository(users: User[]): UsersRepository {
   return {
+    create: jest.fn(),
     findMany: jest.fn().mockResolvedValue(users),
     findById: jest.fn(),
+    findByEmail: jest.fn(),
+    findByEmailIncludingDeleted: jest.fn(),
   };
 }
 

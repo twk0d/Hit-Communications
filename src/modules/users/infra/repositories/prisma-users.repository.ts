@@ -9,6 +9,14 @@ import { PrismaUserMapper } from '../mappers/prisma-user.mapper';
 export class PrismaUsersRepository implements UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async create(user: User): Promise<User> {
+    const createdUser = await this.prisma.user.create({
+      data: PrismaUserMapper.toPersistence(user),
+    });
+
+    return PrismaUserMapper.toDomain(createdUser);
+  }
+
   async findMany(): Promise<User[]> {
     const users = await this.prisma.user.findMany({
       where: {
@@ -27,6 +35,27 @@ export class PrismaUsersRepository implements UsersRepository {
       where: {
         id,
         deletedAt: null,
+      },
+    });
+
+    return user ? PrismaUserMapper.toDomain(user) : null;
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        email,
+        deletedAt: null,
+      },
+    });
+
+    return user ? PrismaUserMapper.toDomain(user) : null;
+  }
+
+  async findByEmailIncludingDeleted(email: string): Promise<User | null> {
+    const user = await this.prisma.user.findUnique({
+      where: {
+        email,
       },
     });
 
