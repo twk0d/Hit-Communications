@@ -15,6 +15,7 @@ import { IncidentPriority } from '../../domain/enums/incident-priority.enum';
 import { IncidentStatus } from '../../domain/enums/incident-status.enum';
 import { CreateIncidentUseCase } from '../../application/use-cases/create-incident.use-case';
 import { GetIncidentByIdUseCase } from '../../application/use-cases/get-incident-by-id.use-case';
+import { ListIncidentsUseCase } from '../../application/use-cases/list-incidents.use-case';
 import { IncidentsController } from './incidents.controller';
 
 const request = supertest as unknown as supertest.SuperTestStatic;
@@ -38,6 +39,16 @@ const incidentOutput = {
   resolvedAt: null,
 };
 
+const incidentsListOutput = {
+  data: [incidentOutput],
+  meta: {
+    page: 2,
+    limit: 5,
+    total: 6,
+    totalPages: 2,
+  },
+};
+
 describe('IncidentsController', () => {
   let app: INestApplication;
   const jwtService = new JwtService({
@@ -46,12 +57,16 @@ describe('IncidentsController', () => {
   const createIncidentUseCase = {
     execute: jest.fn(),
   };
+  const listIncidentsUseCase = {
+    execute: jest.fn(),
+  };
   const getIncidentByIdUseCase = {
     execute: jest.fn(),
   };
 
   beforeEach(async () => {
     createIncidentUseCase.execute.mockResolvedValue(incidentOutput);
+    listIncidentsUseCase.execute.mockResolvedValue(incidentsListOutput);
     getIncidentByIdUseCase.execute.mockResolvedValue(incidentOutput);
 
     const moduleRef = await Test.createTestingModule({
@@ -65,6 +80,10 @@ describe('IncidentsController', () => {
         {
           provide: CreateIncidentUseCase,
           useValue: createIncidentUseCase,
+        },
+        {
+          provide: ListIncidentsUseCase,
+          useValue: listIncidentsUseCase,
         },
         {
           provide: GetIncidentByIdUseCase,
@@ -119,6 +138,95 @@ describe('IncidentsController', () => {
 
   it('rejects create endpoint without bearer token', async () => {
     await request(app.getHttpServer()).post('/api/v1/incidents').expect(401);
+  });
+
+  it('lists incidents through the protected endpoint with filters and pagination', async () => {
+    const accessToken = await createAccessToken();
+    const createdFrom = '2026-06-01T00:00:00.000Z';
+    const createdTo = '2026-06-30T23:59:59.000Z';
+    const resolvedFrom = '2026-06-10T00:00:00.000Z';
+    const resolvedTo = '2026-06-29T23:59:59.000Z';
+
+    await request(app.getHttpServer())
+      .get('/api/v1/incidents')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .query({
+        page: '2',
+        limit: '5',
+        status: IncidentStatus.OPEN,
+        priority: IncidentPriority.HIGH,
+        category: IncidentCategory.NETWORK,
+        assigneeId: authenticatedUser.id,
+        createdFrom,
+        createdTo,
+        resolvedFrom,
+        resolvedTo,
+      })
+      .expect(200)
+      .expect(incidentsListOutput);
+
+    expect(listIncidentsUseCase.execute).toHaveBeenCalledWith({
+      page: 2,
+      limit: 5,
+      status: IncidentStatus.OPEN,
+      priority: IncidentPriority.HIGH,
+      category: IncidentCategory.NETWORK,
+      assigneeId: authenticatedUser.id,
+      createdFrom: new Date(createdFrom),
+      createdTo: new Date(createdTo),
+      resolvedFrom: new Date(resolvedFrom),
+      resolvedTo: new Date(resolvedTo),
+    });
+  });
+
+  it('rejects list endpoint without bearer token', async () => {
+    await request(app.getHttpServer()).get('/api/v1/incidents').expect(401);
+  });
+
+  it('returns 422 for invalid list query params', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .get('/api/v1/incidents')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .query({
+        page: '0',
+        limit: '101',
+        status: 'INVALID',
+        assigneeId: 'not-a-uuid',
+        createdFrom: 'not-a-date',
+      })
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body.statusCode).toBe(422);
+        expect(body.message).toBe('Validation failed');
+        expect(body.errors).toEqual(
+          expect.arrayContaining([
+            {
+              field: 'page',
+              message: 'Page must be a positive integer',
+            },
+            {
+              field: 'limit',
+              message: 'Limit must be less than or equal to 100',
+            },
+            {
+              field: 'status',
+              message: 'Status must be a valid incident status',
+            },
+            {
+              field: 'assigneeId',
+              message: 'Assignee id must be a valid UUID',
+            },
+            {
+              field: 'createdFrom',
+              message: 'Created from must be a valid ISO 8601 date',
+            },
+          ]),
+        );
+      });
+
+    expect(listIncidentsUseCase.execute).not.toHaveBeenCalled();
   });
 
   it('gets an incident by id through the protected endpoint', async () => {

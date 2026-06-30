@@ -13,6 +13,7 @@ import {
 } from './application/transactions/incidents-unit-of-work';
 import { CreateIncidentUseCase } from './application/use-cases/create-incident.use-case';
 import { GetIncidentByIdUseCase } from './application/use-cases/get-incident-by-id.use-case';
+import { ListIncidentsUseCase } from './application/use-cases/list-incidents.use-case';
 import {
   INCIDENT_HISTORY_REPOSITORY,
 } from './domain/repositories/incident-history.repository';
@@ -74,6 +75,12 @@ import { IncidentsController } from './presentation/controllers/incidents.contro
       inject: [INCIDENTS_REPOSITORY],
       useFactory: (incidentsRepository: IncidentsRepository) =>
         new GetIncidentByIdUseCase(incidentsRepository),
+    },
+    {
+      provide: ListIncidentsUseCase,
+      inject: [INCIDENTS_REPOSITORY],
+      useFactory: (incidentsRepository: IncidentsRepository) =>
+        new ListIncidentsUseCase(incidentsRepository),
     },
   ],
   exports: [
