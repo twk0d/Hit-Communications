@@ -16,6 +16,7 @@ import { IncidentOutput } from '../../application/dtos/incident-output';
 import { CreateIncidentUseCase } from '../../application/use-cases/create-incident.use-case';
 import { GetIncidentByIdUseCase } from '../../application/use-cases/get-incident-by-id.use-case';
 import { ListIncidentsUseCase } from '../../application/use-cases/list-incidents.use-case';
+import { ResolveIncidentUseCase } from '../../application/use-cases/resolve-incident.use-case';
 import { UpdateIncidentUseCase } from '../../application/use-cases/update-incident.use-case';
 import { CreateIncidentDto } from '../dtos/create-incident.dto';
 import { GetIncidentParamsDto } from '../dtos/get-incident-params.dto';
@@ -31,6 +32,7 @@ export class IncidentsController {
     private readonly listIncidentsUseCase: ListIncidentsUseCase,
     private readonly getIncidentByIdUseCase: GetIncidentByIdUseCase,
     private readonly updateIncidentUseCase: UpdateIncidentUseCase,
+    private readonly resolveIncidentUseCase: ResolveIncidentUseCase,
   ) {}
 
   @Post()
@@ -64,6 +66,17 @@ export class IncidentsController {
   getById(@Param() params: GetIncidentParamsDto): Promise<IncidentOutput> {
     return this.getIncidentByIdUseCase.execute({
       id: params.id,
+    });
+  }
+
+  @Patch(':id/resolve')
+  resolve(
+    @Param() params: GetIncidentParamsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<IncidentOutput> {
+    return this.resolveIncidentUseCase.execute({
+      id: params.id,
+      changedById: user.id,
     });
   }
 

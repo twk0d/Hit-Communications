@@ -15,6 +15,7 @@ import {
 import { CreateIncidentUseCase } from './application/use-cases/create-incident.use-case';
 import { GetIncidentByIdUseCase } from './application/use-cases/get-incident-by-id.use-case';
 import { ListIncidentsUseCase } from './application/use-cases/list-incidents.use-case';
+import { ResolveIncidentUseCase } from './application/use-cases/resolve-incident.use-case';
 import { UpdateIncidentUseCase } from './application/use-cases/update-incident.use-case';
 import {
   INCIDENT_HISTORY_REPOSITORY,
@@ -96,6 +97,20 @@ import { IncidentsController } from './presentation/controllers/incidents.contro
         new UpdateIncidentUseCase(
           incidentsUnitOfWork,
           usersRepository,
+          idGenerator,
+          clock,
+        ),
+    },
+    {
+      provide: ResolveIncidentUseCase,
+      inject: [INCIDENTS_UNIT_OF_WORK, ID_GENERATOR, CLOCK],
+      useFactory: (
+        incidentsUnitOfWork: IncidentsUnitOfWork,
+        idGenerator: IdGenerator,
+        clock: Clock,
+      ) =>
+        new ResolveIncidentUseCase(
+          incidentsUnitOfWork,
           idGenerator,
           clock,
         ),

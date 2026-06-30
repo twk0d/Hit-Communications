@@ -5,7 +5,10 @@ import { PassportModule } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
 import * as supertest from 'supertest';
 
-import { ResourceNotFoundError } from '../../../../shared/application/errors/application.error';
+import {
+  BusinessRuleViolationError,
+  ResourceNotFoundError,
+} from '../../../../shared/application/errors/application.error';
 import { HttpExceptionFilter } from '../../../../shared/presentation/http-exception.filter';
 import { ZodValidationPipe } from '../../../../shared/presentation/zod-validation.pipe';
 import { JwtStrategy } from '../../../auth/infra/strategies/jwt.strategy';
@@ -16,6 +19,7 @@ import { IncidentStatus } from '../../domain/enums/incident-status.enum';
 import { CreateIncidentUseCase } from '../../application/use-cases/create-incident.use-case';
 import { GetIncidentByIdUseCase } from '../../application/use-cases/get-incident-by-id.use-case';
 import { ListIncidentsUseCase } from '../../application/use-cases/list-incidents.use-case';
+import { ResolveIncidentUseCase } from '../../application/use-cases/resolve-incident.use-case';
 import { UpdateIncidentUseCase } from '../../application/use-cases/update-incident.use-case';
 import { IncidentsController } from './incidents.controller';
 
@@ -59,6 +63,13 @@ const updatedIncidentOutput = {
   updatedAt: '2026-06-29T13:00:00.000Z',
 };
 
+const resolvedIncidentOutput = {
+  ...incidentOutput,
+  status: IncidentStatus.RESOLVED,
+  updatedAt: '2026-06-29T13:00:00.000Z',
+  resolvedAt: '2026-06-29T13:00:00.000Z',
+};
+
 describe('IncidentsController', () => {
   let app: INestApplication;
   const jwtService = new JwtService({
@@ -76,12 +87,16 @@ describe('IncidentsController', () => {
   const updateIncidentUseCase = {
     execute: jest.fn(),
   };
+  const resolveIncidentUseCase = {
+    execute: jest.fn(),
+  };
 
   beforeEach(async () => {
     createIncidentUseCase.execute.mockResolvedValue(incidentOutput);
     listIncidentsUseCase.execute.mockResolvedValue(incidentsListOutput);
     getIncidentByIdUseCase.execute.mockResolvedValue(incidentOutput);
     updateIncidentUseCase.execute.mockResolvedValue(updatedIncidentOutput);
+    resolveIncidentUseCase.execute.mockResolvedValue(resolvedIncidentOutput);
 
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -106,6 +121,10 @@ describe('IncidentsController', () => {
         {
           provide: UpdateIncidentUseCase,
           useValue: updateIncidentUseCase,
+        },
+        {
+          provide: ResolveIncidentUseCase,
+          useValue: resolveIncidentUseCase,
         },
         {
           provide: ConfigService,
@@ -441,6 +460,82 @@ describe('IncidentsController', () => {
       .send({
         title: 'VPN degraded',
       })
+      .expect(404)
+      .expect({
+        statusCode: 404,
+        message: 'Incident not found',
+      });
+  });
+
+  it('resolves an incident through the protected endpoint', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}/resolve`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
+      .expect(resolvedIncidentOutput);
+
+    expect(resolveIncidentUseCase.execute).toHaveBeenCalledWith({
+      id: incidentOutput.id,
+      changedById: authenticatedUser.id,
+    });
+  });
+
+  it('rejects resolve endpoint without bearer token', async () => {
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}/resolve`)
+      .expect(401);
+  });
+
+  it('returns 422 for invalid resolve incident id param', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/incidents/not-a-uuid/resolve')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          statusCode: 422,
+          message: 'Validation failed',
+          errors: [
+            {
+              field: 'id',
+              message: 'Incident id must be a valid UUID',
+            },
+          ],
+        });
+      });
+
+    expect(resolveIncidentUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('maps already resolved incident to 422', async () => {
+    const accessToken = await createAccessToken();
+    resolveIncidentUseCase.execute.mockRejectedValueOnce(
+      new BusinessRuleViolationError('Incident is already resolved'),
+    );
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}/resolve`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(422)
+      .expect({
+        statusCode: 422,
+        message: 'Incident is already resolved',
+      });
+  });
+
+  it('maps resolve incident not found to 404', async () => {
+    const accessToken = await createAccessToken();
+    resolveIncidentUseCase.execute.mockRejectedValueOnce(
+      new ResourceNotFoundError('Incident not found'),
+    );
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}/resolve`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(404)
       .expect({
         statusCode: 404,
