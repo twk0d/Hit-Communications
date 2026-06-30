@@ -2,9 +2,25 @@
 
 API REST para gerenciamento de incidentes operacionais, desenvolvida como teste tecnico para a HIT Communications.
 
-O projeto adota Clean Architecture orientada a DDD pragmatico: entidades ricas, aggregates bem delimitados, use cases explicitos, Repository Pattern, Unit of Work, CQRS leve e eventos de dominio em memoria quando fizerem sentido.
+O projeto implementa um monolito modular em NestJS com Clean Architecture orientada a DDD pragmatico: entidades ricas, aggregates bem delimitados, use cases explicitos, Repository Pattern, Unit of Work, CQRS leve com `@nestjs/cqrs`, Prisma ORM isolado na infraestrutura e JWT com access token no MVP.
 
-Este repositorio ainda esta na fase de alinhamento tecnico. As decisoes, requisitos e plano de implementacao estao documentados em:
+## Stack
+
+- NestJS e TypeScript.
+- npm.
+- Prisma ORM.
+- PostgreSQL.
+- Docker e Docker Compose.
+- Zod.
+- Jest e Supertest.
+- Swagger/OpenAPI.
+- JWT.
+- Argon2id.
+- GitHub Actions.
+
+## Documentacao
+
+As decisoes e detalhes do projeto estao documentados em:
 
 - [docs/01-requisitos-do-teste.md](docs/01-requisitos-do-teste.md)
 - [docs/02-decisoes-tecnicas.md](docs/02-decisoes-tecnicas.md)
@@ -14,21 +30,65 @@ Este repositorio ainda esta na fase de alinhamento tecnico. As decisoes, requisi
 - [docs/06-revisao-local-codex.md](docs/06-revisao-local-codex.md)
 - [docs/07-arquitetura-detalhada.md](docs/07-arquitetura-detalhada.md)
 - [docs/08-pos-mvp.md](docs/08-pos-mvp.md)
+- [docs/09-plano-de-implementacao.md](docs/09-plano-de-implementacao.md)
 
-## Desenvolvimento Local
+Collection Insomnia:
 
-### Requisitos
+- [docs/Insomnia_2026-06-30.yaml](docs/Insomnia_2026-06-30.yaml)
+
+## Requisitos Locais
 
 - Node.js 24 LTS.
 - npm.
 - Docker Desktop.
 
-### Configuracao
+## Configuracao
+
+Crie o arquivo `.env` a partir do exemplo:
+
+```bash
+cp .env.example .env
+```
+
+No Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Variaveis principais:
+
+```env
+NODE_ENV=development
+PORT=3000
+DATABASE_URL="postgresql://hit:hit@localhost:5432/hit_incidents?schema=public"
+DATABASE_URL_TEST="postgresql://hit:hit@localhost:5432/hit_incidents?schema=e2e_test"
+JWT_SECRET="change-me-in-local-development"
+JWT_EXPIRES_IN="1h"
+```
+
+Conexao local com o PostgreSQL do Docker:
+
+```txt
+Host: localhost
+Port: 5432
+Database: hit_incidents
+User: hit
+Password: hit
+Schema: public
+```
+
+Dentro do Docker Compose, a API usa o host interno `postgres`:
+
+```txt
+postgresql://hit:hit@postgres:5432/hit_incidents?schema=public
+```
+
+## Rodando Localmente
 
 Para rodar o backend localmente usando o PostgreSQL do Docker:
 
 ```bash
-cp .env.example .env
 npm install
 npm run prisma:generate
 docker compose up -d postgres
@@ -37,23 +97,53 @@ npm run prisma:seed
 npm run start:dev
 ```
 
-Para rodar backend e PostgreSQL dentro do Docker Compose:
+A API ficara disponivel em:
 
-```bash
-docker compose --profile api up --build
+```txt
+http://localhost:3000/api/v1
 ```
 
-A API usa o prefixo global `/api/v1`.
-
-A documentacao Swagger ficara disponivel em:
+Swagger:
 
 ```txt
 http://localhost:3000/api/docs
 ```
 
-### Dados de Seed
+Para rodar API e PostgreSQL no Docker Compose:
 
-O comando abaixo popula dados de desenvolvimento para avaliacao manual:
+```bash
+docker compose --profile api up --build
+```
+
+## Prisma
+
+Gerar Prisma Client:
+
+```bash
+npm run prisma:generate
+```
+
+Criar/aplicar migration em desenvolvimento:
+
+```bash
+npm run prisma:migrate:dev
+```
+
+Aplicar migrations existentes:
+
+```bash
+npm run prisma:migrate:deploy
+```
+
+Abrir Prisma Studio:
+
+```bash
+npm run prisma:studio
+```
+
+## Seed
+
+O seed popula usuarios e incidentes demo para avaliacao manual:
 
 ```bash
 npm run prisma:seed
@@ -66,7 +156,14 @@ Admin: admin@hit.local / Admin123!
 User:  user@hit.local / User123!
 ```
 
-O seed tambem cria 16 incidentes demo:
+IDs estaveis dos usuarios:
+
+```txt
+Admin: cf859f02-e83f-4b78-8f5b-6944ca5fd38a
+User:  356b57c6-9b8a-4576-8df6-cbd9799d8295
+```
+
+O seed cria 16 incidentes demo:
 
 - 14 incidentes ativos e 2 incidentes removidos logicamente.
 - 4 incidentes por status: `OPEN`, `IN_PROGRESS`, `RESOLVED` e `CANCELED`.
@@ -76,32 +173,163 @@ O seed tambem cria 16 incidentes demo:
 - Datas de criacao e resolucao espalhadas para testar filtros por periodo.
 - Historico de alteracoes em parte dos incidentes, incluindo resolucoes com `status` e `resolvedAt`.
 
-Esses dados sao voltados para uso manual em Swagger, Insomnia ou chamadas locais. A suite e2e deve usar banco de teste isolado e dados proprios.
+Os incidentes demo usam IDs estaveis no formato:
 
-### Scripts Principais
+```txt
+10000000-0000-4000-8000-000000000001
+...
+10000000-0000-4000-8000-000000000016
+```
+
+Esses dados sao voltados para Swagger, Insomnia e chamadas locais. A suite e2e usa schema isolado e dados proprios.
+
+## Rotas
+
+Todas as rotas da API usam o prefixo global:
+
+```txt
+/api/v1
+```
+
+Auth:
+
+```txt
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+GET  /api/v1/auth/me
+```
+
+Users:
+
+```txt
+GET /api/v1/users
+GET /api/v1/users/:id
+```
+
+Incidents:
+
+```txt
+POST   /api/v1/incidents
+GET    /api/v1/incidents
+GET    /api/v1/incidents/:id
+PATCH  /api/v1/incidents/:id
+PATCH  /api/v1/incidents/:id/resolve
+DELETE /api/v1/incidents/:id
+GET    /api/v1/incidents/:id/history
+```
+
+`POST /auth/register` e `POST /auth/login` sao publicos. As demais rotas exigem JWT bearer token.
+
+## Testes
+
+Rodar lint:
 
 ```bash
 npm run lint
+```
+
+Rodar testes unitarios:
+
+```bash
 npm test
+```
+
+Rodar build:
+
+```bash
 npm run build
-npm run test:e2e
 ```
 
-### Testes E2E
-
-A suite e2e usa PostgreSQL real e dados criados pelos proprios testes. Antes de rodar, configure `DATABASE_URL_TEST` no `.env` ou no ambiente. A suite carrega essa variavel, aplica as migrations com `prisma migrate deploy` antes de iniciar a aplicacao e limpa os dados entre os cenarios.
-
-Exemplo:
-
-```env
-DATABASE_URL_TEST="postgresql://hit:hit@localhost:5432/hit_incidents?schema=e2e_test"
-```
-
-Por seguranca, `DATABASE_URL_TEST` deve informar um schema explicito iniciado por `e2e_`. A suite falha antes de migrations ou limpeza se a URL apontar para `schema=public`, nao informar schema ou usar um nome fora desse padrao.
+Rodar e2e com PostgreSQL real:
 
 ```bash
 docker compose up -d postgres
 npm run test:e2e
 ```
 
-Se precisar apontar para outro banco de teste, ajuste `DATABASE_URL_TEST` no `.env` mantendo um schema separado do desenvolvimento local, como `schema=e2e_ci`.
+A suite e2e exige `DATABASE_URL_TEST`. Por seguranca, a URL precisa informar um schema explicito iniciado por `e2e_`, como:
+
+```env
+DATABASE_URL_TEST="postgresql://hit:hit@localhost:5432/hit_incidents?schema=e2e_test"
+```
+
+O harness e2e falha antes de migrations ou limpeza se a URL usar `schema=public`, nao tiver schema ou usar um schema fora do prefixo `e2e_`.
+
+## Insomnia
+
+A collection esta em:
+
+```txt
+docs/Insomnia_2026-06-30.yaml
+```
+
+Ela usa variaveis de ambiente para:
+
+- `BaseURL`
+- `ApiVersion`
+- `JWToken`
+- usuarios seedados
+- incidentes seedados
+
+Fluxo sugerido:
+
+1. Rode `npm run prisma:seed`.
+2. Use a request `Auth / Login`.
+3. Copie o `accessToken` retornado para a variavel `JWToken`.
+4. Execute as requests protegidas.
+
+## CI
+
+O workflow GitHub Actions esta em:
+
+```txt
+.github/workflows/ci.yml
+```
+
+Ele roda em `push` e `pull_request`:
+
+- `npm ci`
+- `npm run prisma:generate`
+- `npm run lint`
+- `npm test -- --runInBand`
+- `npm run build`
+- `npm run test:e2e`
+
+O CI sobe PostgreSQL 16 como service e usa `DATABASE_URL_TEST` com `schema=e2e_ci`.
+
+## Decisoes Importantes Do MVP
+
+- JWT apenas com access token.
+- Sem refresh token no MVP.
+- Senhas com Argon2id.
+- `Incident` e `User` sao aggregate roots.
+- `IncidentHistory` e registro de auditoria associado ao incidente.
+- IDs UUID.
+- Soft delete com `deletedAt`.
+- Queries padrao ignoram registros com `deletedAt`.
+- Datas em UTC e expostas em ISO 8601.
+- Prisma fica isolado na infraestrutura.
+- Use cases nao importam Prisma, Nest HTTP, controllers ou detalhes de infraestrutura.
+- Controllers sao finos e delegam para use cases.
+- Atualizacao de incidente e historico sao persistidos na mesma transacao via Unit of Work.
+- Historico obrigatorio nao e implementado por evento assincrono.
+- `PATCH /api/v1/incidents/:id` nao aceita `status = RESOLVED`.
+- Resolucao ocorre por `PATCH /api/v1/incidents/:id/resolve`.
+- `DELETE /api/v1/incidents/:id` faz soft delete.
+- Paginacao usa `page` default `1`, `limit` default `10` e `limit` maximo `100`.
+- Ordenacao padrao da listagem de incidentes: `createdAt desc`.
+
+## Pos-MVP
+
+Ficaram documentados como evolucao futura:
+
+- Regras especificas por role.
+- Purge/anonimizacao de soft delete antigo.
+- Logs estruturados com Pino/NestJS-Pino.
+- Migracao eventual de Jest para Vitest.
+- CQRS completo com read models/projecoes, se houver necessidade.
+- DDD mais profundo com bounded contexts reais, se o dominio crescer.
+- Mensageria duravel/outbox.
+- Refresh token, se o escopo de autenticacao evoluir.
+
+Detalhes em [docs/08-pos-mvp.md](docs/08-pos-mvp.md).
