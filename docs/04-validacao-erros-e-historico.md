@@ -75,6 +75,7 @@ Observacao:
 - O enunciado cita `responsavel`; no modelo adotado, isso sera `assigneeId`.
 - O enunciado cita `status`; no endpoint generico de atualizacao, a mudanca para `RESOLVED` sera bloqueada.
 - A resolucao deve acontecer pelo endpoint dedicado `PATCH /api/v1/incidents/:id/resolve`.
+- Incidentes ja resolvidos nao podem ser alterados pelo endpoint generico de atualizacao.
 
 ## Formato de Erro Aprovado
 
@@ -116,6 +117,7 @@ Exemplos:
 - Usuario responsavel inexistente em criacao/atualizacao de incidente.
 - Tentativa de resolver incidente ja resolvido.
 - Tentativa de definir `status` como `RESOLVED` pelo endpoint generico de atualizacao.
+- Tentativa de atualizar incidente ja resolvido.
 
 ### 500
 
