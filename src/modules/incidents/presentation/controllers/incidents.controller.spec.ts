@@ -17,6 +17,8 @@ import { IncidentCategory } from '../../domain/enums/incident-category.enum';
 import { IncidentPriority } from '../../domain/enums/incident-priority.enum';
 import { IncidentStatus } from '../../domain/enums/incident-status.enum';
 import { CreateIncidentUseCase } from '../../application/use-cases/create-incident.use-case';
+import { DeleteIncidentUseCase } from '../../application/use-cases/delete-incident.use-case';
+import { GetIncidentHistoryUseCase } from '../../application/use-cases/get-incident-history.use-case';
 import { GetIncidentByIdUseCase } from '../../application/use-cases/get-incident-by-id.use-case';
 import { ListIncidentsUseCase } from '../../application/use-cases/list-incidents.use-case';
 import { ResolveIncidentUseCase } from '../../application/use-cases/resolve-incident.use-case';
@@ -70,6 +72,18 @@ const resolvedIncidentOutput = {
   resolvedAt: '2026-06-29T13:00:00.000Z',
 };
 
+const incidentHistoryOutput = [
+  {
+    id: '9681cfe6-ed3b-463d-a868-e9a38bd8cff9',
+    incidentId: incidentOutput.id,
+    field: 'status',
+    oldValue: IncidentStatus.OPEN,
+    newValue: IncidentStatus.IN_PROGRESS,
+    changedById: authenticatedUser.id,
+    changedAt: '2026-06-29T13:00:00.000Z',
+  },
+];
+
 describe('IncidentsController', () => {
   let app: INestApplication;
   const jwtService = new JwtService({
@@ -90,6 +104,12 @@ describe('IncidentsController', () => {
   const resolveIncidentUseCase = {
     execute: jest.fn(),
   };
+  const deleteIncidentUseCase = {
+    execute: jest.fn(),
+  };
+  const getIncidentHistoryUseCase = {
+    execute: jest.fn(),
+  };
 
   beforeEach(async () => {
     createIncidentUseCase.execute.mockResolvedValue(incidentOutput);
@@ -97,6 +117,8 @@ describe('IncidentsController', () => {
     getIncidentByIdUseCase.execute.mockResolvedValue(incidentOutput);
     updateIncidentUseCase.execute.mockResolvedValue(updatedIncidentOutput);
     resolveIncidentUseCase.execute.mockResolvedValue(resolvedIncidentOutput);
+    deleteIncidentUseCase.execute.mockResolvedValue(undefined);
+    getIncidentHistoryUseCase.execute.mockResolvedValue(incidentHistoryOutput);
 
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -125,6 +147,14 @@ describe('IncidentsController', () => {
         {
           provide: ResolveIncidentUseCase,
           useValue: resolveIncidentUseCase,
+        },
+        {
+          provide: DeleteIncidentUseCase,
+          useValue: deleteIncidentUseCase,
+        },
+        {
+          provide: GetIncidentHistoryUseCase,
+          useValue: getIncidentHistoryUseCase,
         },
         {
           provide: ConfigService,
@@ -325,6 +355,65 @@ describe('IncidentsController', () => {
       });
   });
 
+  it('gets incident history through the protected endpoint', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${incidentOutput.id}/history`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
+      .expect(incidentHistoryOutput);
+
+    expect(getIncidentHistoryUseCase.execute).toHaveBeenCalledWith({
+      incidentId: incidentOutput.id,
+    });
+  });
+
+  it('rejects incident history endpoint without bearer token', async () => {
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${incidentOutput.id}/history`)
+      .expect(401);
+  });
+
+  it('returns 422 for invalid incident history id param', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .get('/api/v1/incidents/not-a-uuid/history')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          statusCode: 422,
+          message: 'Validation failed',
+          errors: [
+            {
+              field: 'id',
+              message: 'Incident id must be a valid UUID',
+            },
+          ],
+        });
+      });
+
+    expect(getIncidentHistoryUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('maps incident history not found to 404', async () => {
+    const accessToken = await createAccessToken();
+    getIncidentHistoryUseCase.execute.mockRejectedValueOnce(
+      new ResourceNotFoundError('Incident not found'),
+    );
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${incidentOutput.id}/history`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404)
+      .expect({
+        statusCode: 404,
+        message: 'Incident not found',
+      });
+  });
+
   it('updates an incident through the protected endpoint', async () => {
     const accessToken = await createAccessToken();
 
@@ -467,6 +556,25 @@ describe('IncidentsController', () => {
       });
   });
 
+  it('maps update of already resolved incident to 422', async () => {
+    const accessToken = await createAccessToken();
+    updateIncidentUseCase.execute.mockRejectedValueOnce(
+      new BusinessRuleViolationError('Resolved incident cannot be updated'),
+    );
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'VPN degraded',
+      })
+      .expect(422)
+      .expect({
+        statusCode: 422,
+        message: 'Resolved incident cannot be updated',
+      });
+  });
+
   it('resolves an incident through the protected endpoint', async () => {
     const accessToken = await createAccessToken();
 
@@ -535,6 +643,65 @@ describe('IncidentsController', () => {
 
     await request(app.getHttpServer())
       .patch(`/api/v1/incidents/${incidentOutput.id}/resolve`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404)
+      .expect({
+        statusCode: 404,
+        message: 'Incident not found',
+      });
+  });
+
+  it('soft deletes an incident through the protected endpoint', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(204)
+      .expect('');
+
+    expect(deleteIncidentUseCase.execute).toHaveBeenCalledWith({
+      id: incidentOutput.id,
+    });
+  });
+
+  it('rejects delete endpoint without bearer token', async () => {
+    await request(app.getHttpServer())
+      .delete(`/api/v1/incidents/${incidentOutput.id}`)
+      .expect(401);
+  });
+
+  it('returns 422 for invalid delete incident id param', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/incidents/not-a-uuid')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          statusCode: 422,
+          message: 'Validation failed',
+          errors: [
+            {
+              field: 'id',
+              message: 'Incident id must be a valid UUID',
+            },
+          ],
+        });
+      });
+
+    expect(deleteIncidentUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('maps delete incident not found to 404', async () => {
+    const accessToken = await createAccessToken();
+    deleteIncidentUseCase.execute.mockRejectedValueOnce(
+      new ResourceNotFoundError('Incident not found'),
+    );
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/incidents/${incidentOutput.id}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(404)
       .expect({

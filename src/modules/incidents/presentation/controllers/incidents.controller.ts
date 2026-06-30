@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -12,8 +14,11 @@ import {
 import { CurrentUser } from '../../../auth/presentation/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../../auth/infra/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../../../auth/infra/types/authenticated-user';
+import { IncidentHistoryOutput } from '../../application/dtos/incident-history-output';
 import { IncidentOutput } from '../../application/dtos/incident-output';
 import { CreateIncidentUseCase } from '../../application/use-cases/create-incident.use-case';
+import { DeleteIncidentUseCase } from '../../application/use-cases/delete-incident.use-case';
+import { GetIncidentHistoryUseCase } from '../../application/use-cases/get-incident-history.use-case';
 import { GetIncidentByIdUseCase } from '../../application/use-cases/get-incident-by-id.use-case';
 import { ListIncidentsUseCase } from '../../application/use-cases/list-incidents.use-case';
 import { ResolveIncidentUseCase } from '../../application/use-cases/resolve-incident.use-case';
@@ -33,6 +38,8 @@ export class IncidentsController {
     private readonly getIncidentByIdUseCase: GetIncidentByIdUseCase,
     private readonly updateIncidentUseCase: UpdateIncidentUseCase,
     private readonly resolveIncidentUseCase: ResolveIncidentUseCase,
+    private readonly deleteIncidentUseCase: DeleteIncidentUseCase,
+    private readonly getIncidentHistoryUseCase: GetIncidentHistoryUseCase,
   ) {}
 
   @Post()
@@ -69,6 +76,15 @@ export class IncidentsController {
     });
   }
 
+  @Get(':id/history')
+  getHistory(
+    @Param() params: GetIncidentParamsDto,
+  ): Promise<IncidentHistoryOutput[]> {
+    return this.getIncidentHistoryUseCase.execute({
+      incidentId: params.id,
+    });
+  }
+
   @Patch(':id/resolve')
   resolve(
     @Param() params: GetIncidentParamsDto,
@@ -94,6 +110,14 @@ export class IncidentsController {
       assigneeId: body.assigneeId,
       status: body.status,
       changedById: user.id,
+    });
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  delete(@Param() params: GetIncidentParamsDto): Promise<void> {
+    return this.deleteIncidentUseCase.execute({
+      id: params.id,
     });
   }
 }

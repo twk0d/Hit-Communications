@@ -85,6 +85,8 @@ export class Incident {
   }
 
   updateDetails(params: { title?: string; description?: string }, now: Date): void {
+    this.ensureCanBeUpdated();
+
     if (params.title !== undefined) {
       this.props.title = params.title;
     }
@@ -97,11 +99,15 @@ export class Incident {
   }
 
   assignTo(assigneeId: string, now: Date): void {
+    this.ensureCanBeUpdated();
+
     this.props.assigneeId = assigneeId;
     this.touch(now);
   }
 
   changePriority(priority: IncidentPriority, now: Date): void {
+    this.ensureCanBeUpdated();
+
     this.props.priority = priority;
     this.touch(now);
   }
@@ -113,6 +119,8 @@ export class Incident {
         'Incident resolution must use the dedicated resolve flow',
       );
     }
+
+    this.ensureCanBeUpdated();
 
     this.props.status = status;
     this.touch(now);
@@ -145,5 +153,11 @@ export class Incident {
 
   private touch(now: Date): void {
     this.props.updatedAt = new Date(now);
+  }
+
+  private ensureCanBeUpdated(): void {
+    if (this.props.status === IncidentStatus.RESOLVED) {
+      throw new BusinessRuleViolationError('Resolved incident cannot be updated');
+    }
   }
 }

@@ -27,18 +27,18 @@ const assigneeId = '356b57c6-9b8a-4576-8df6-cbd9799d8295';
 const newAssigneeId = 'd1694df5-f0db-47d5-9d8e-889ad5ac73a0';
 const changedById = 'cf859f02-e83f-4b78-8f5b-6944ca5fd38a';
 
-function makeIncident(): Incident {
+function makeIncident(status = IncidentStatus.OPEN): Incident {
   return Incident.create({
     id: incidentId,
     title: 'VPN unavailable',
     description: 'Users cannot connect to the VPN gateway.',
     category: IncidentCategory.NETWORK,
     priority: IncidentPriority.HIGH,
-    status: IncidentStatus.OPEN,
+    status,
     assigneeId,
     createdAt: now,
     updatedAt: now,
-    resolvedAt: null,
+    resolvedAt: status === IncidentStatus.RESOLVED ? changedAt : null,
     deletedAt: null,
   });
 }
@@ -230,6 +230,26 @@ describe('UpdateIncidentUseCase', () => {
       }),
     ).rejects.toThrow(ResourceNotFoundError);
     expect(context.incidentsUnitOfWork.execute).not.toHaveBeenCalled();
+  });
+
+  it('throws BusinessRuleViolationError when incident is already resolved', async () => {
+    const context = makeTransactionContext(makeIncident(IncidentStatus.RESOLVED));
+    const useCase = new UpdateIncidentUseCase(
+      context.incidentsUnitOfWork,
+      makeUsersRepository(),
+      makeIdGenerator(),
+      new FixedClock(changedAt),
+    );
+
+    await expect(
+      useCase.execute({
+        id: incidentId,
+        title: 'VPN degraded',
+        changedById,
+      }),
+    ).rejects.toThrow(BusinessRuleViolationError);
+    expect(context.incidentsRepository.update).not.toHaveBeenCalled();
+    expect(context.incidentHistoryRepository.createMany).not.toHaveBeenCalled();
   });
 
   it('throws BusinessRuleViolationError when status is RESOLVED', async () => {

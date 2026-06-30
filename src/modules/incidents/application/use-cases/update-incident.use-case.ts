@@ -66,6 +66,12 @@ export class UpdateIncidentUseCase {
           throw new ResourceNotFoundError('Incident not found');
         }
 
+        if (incident.status === IncidentStatus.RESOLVED) {
+          throw new BusinessRuleViolationError(
+            'Resolved incident cannot be updated',
+          );
+        }
+
         const now = this.clock.now();
         const changes = applyIncidentUpdates(incident, input, now);
 

@@ -19,6 +19,21 @@ function makeIncident(): Incident {
   });
 }
 
+function makeResolvedIncident(): Incident {
+  return Incident.create({
+    id: '1b81f0a5-5d33-44e1-9c20-7d1f8a6f20b0',
+    title: 'VPN unavailable',
+    description: 'Users cannot access the VPN service.',
+    category: IncidentCategory.NETWORK,
+    priority: IncidentPriority.HIGH,
+    status: IncidentStatus.RESOLVED,
+    assigneeId: '356b57c6-9b8a-4576-8df6-cbd9799d8295',
+    createdAt: baseDate,
+    updatedAt: new Date('2026-06-29T14:00:00.000Z'),
+    resolvedAt: new Date('2026-06-29T14:00:00.000Z'),
+  });
+}
+
 describe('Incident', () => {
   it('creates an incident with OPEN status by default', () => {
     const incident = makeIncident();
@@ -82,6 +97,29 @@ describe('Incident', () => {
     expect(() => incident.resolve(new Date('2026-06-29T15:00:00.000Z'))).toThrow(
       BusinessRuleViolationError,
     );
+  });
+
+  it('blocks generic updates after incident is resolved', () => {
+    const incident = makeResolvedIncident();
+    const updatedAt = new Date('2026-06-29T15:00:00.000Z');
+
+    expect(() =>
+      incident.updateDetails(
+        {
+          title: 'VPN restored',
+        },
+        updatedAt,
+      ),
+    ).toThrow(BusinessRuleViolationError);
+    expect(() =>
+      incident.assignTo('d1694df5-f0db-47d5-9d8e-889ad5ac73a0', updatedAt),
+    ).toThrow(BusinessRuleViolationError);
+    expect(() =>
+      incident.changePriority(IncidentPriority.CRITICAL, updatedAt),
+    ).toThrow(BusinessRuleViolationError);
+    expect(() =>
+      incident.changeStatus(IncidentStatus.IN_PROGRESS, updatedAt),
+    ).toThrow(BusinessRuleViolationError);
   });
 
   it('soft deletes incident with deletedAt and updatedAt', () => {
