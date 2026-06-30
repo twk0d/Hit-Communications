@@ -79,13 +79,17 @@ Soft delete preserva rastreabilidade e evita perda acidental no curto e medio pr
 - Delete fisico pode ser irreversivel.
 - Precisa decidir se historicos relacionados tambem serao removidos, preservados ou anonimizados.
 
-## 3. Logs Estruturados com Pino/NestJS-Pino
+## 3. Observabilidade Avancada
 
 ### O que
 
-Incluir logs estruturados usando `pino` e `nestjs-pino`.
+Evoluir a observabilidade alem dos logs estruturados ja incluidos no MVP com `pino` e `nestjs-pino`.
 
-Possiveis dados de log:
+Plano detalhado:
+
+- [docs/10-plano-logs-estruturados.md](docs/10-plano-logs-estruturados.md)
+
+Base ja entregue no MVP:
 
 - `requestId`.
 - Metodo HTTP.
@@ -96,24 +100,34 @@ Possiveis dados de log:
 - Erros de aplicacao.
 - Eventos relevantes de dominio.
 
+Possiveis evolucoes:
+
+- OpenTelemetry.
+- Tracing distribuido.
+- Metricas Prometheus.
+- Dashboards.
+- Alertas.
+- Envio para Grafana Loki, Datadog, ELK/OpenSearch, CloudWatch ou ferramenta equivalente.
+
 ### Por que
 
-Logs estruturados sao um diferencial citado pelo enunciado, mas foram deixados para pos-MVP para preservar prazo de entrega.
+Logs estruturados deixaram de ser pos-MVP e foram promovidos para a entrega principal. O que fica como pos-MVP e a camada de observabilidade completa ao redor deles.
 
 ### Beneficios
 
-- Melhora observabilidade.
-- Facilita debug em ambiente local e producao.
-- Facilita correlacao de erros com requisicoes.
-- Permite integracao futura com ferramentas de monitoramento.
-- Ajuda a demonstrar maturidade operacional.
+- Permite correlacionar logs, traces e metricas.
+- Facilita debug em producao.
+- Permite alertas operacionais.
+- Apoia investigacao de incidentes reais.
+- Complementa a rastreabilidade sem substituir o historico RF06.
 
 ### Trade-offs
 
-- Adiciona dependencia e configuracao.
-- Exige cuidado para nao logar dados sensiveis.
-- Pode gerar ruido se nao houver padrao de eventos.
+- Adiciona infraestrutura externa.
+- Exige operacao, custo e monitoramento.
+- Pode gerar ruido se nao houver padrao de eventos e metricas.
 - Aumenta escopo de testes e revisao de seguranca.
+- Exige cuidado continuo para nao vazar tokens, senhas ou dados sensiveis.
 
 ## 4. Migrar Jest Para Vitest
 

@@ -16,6 +16,7 @@ O projeto implementa um monolito modular em NestJS com Clean Architecture orient
 - Swagger/OpenAPI.
 - JWT.
 - Argon2id.
+- Pino/NestJS-Pino.
 - GitHub Actions.
 
 ## Documentacao
@@ -31,6 +32,8 @@ As decisoes e detalhes do projeto estao documentados em:
 - [docs/07-arquitetura-detalhada.md](docs/07-arquitetura-detalhada.md)
 - [docs/08-pos-mvp.md](docs/08-pos-mvp.md)
 - [docs/09-plano-de-implementacao.md](docs/09-plano-de-implementacao.md)
+- [docs/10-plano-logs-estruturados.md](docs/10-plano-logs-estruturados.md)
+- [docs/11-plano-benchmark-k6.md](docs/11-plano-benchmark-k6.md)
 
 Collection Insomnia:
 
@@ -65,6 +68,7 @@ DATABASE_URL="postgresql://hit:hit@localhost:5432/hit_incidents?schema=public"
 DATABASE_URL_TEST="postgresql://hit:hit@localhost:5432/hit_incidents?schema=e2e_test"
 JWT_SECRET="change-me-in-local-development"
 JWT_EXPIRES_IN="1h"
+LOG_LEVEL="debug"
 ```
 
 Conexao local com o PostgreSQL do Docker:
@@ -218,7 +222,26 @@ DELETE /api/v1/incidents/:id
 GET    /api/v1/incidents/:id/history
 ```
 
-`POST /auth/register` e `POST /auth/login` sao publicos. As demais rotas exigem JWT bearer token.
+`POST /api/v1/auth/register` e `POST /api/v1/auth/login` sao publicos. As demais rotas exigem JWT bearer token.
+
+## Logs Estruturados
+
+A API usa `nestjs-pino`/Pino como logger global.
+
+- Logs HTTP sao emitidos em JSON estruturado.
+- Toda resposta recebe `x-request-id`.
+- Quando o cliente envia `x-request-id`, o valor e preservado.
+- Quando ausente, a API gera um UUID.
+- Campos sensiveis como senha, hash, token, `Authorization`, cookies e secrets sao mascarados.
+- Operacoes principais de auth, users e incidents registram `operation` e IDs seguros quando disponiveis.
+
+Nivel de log:
+
+```env
+LOG_LEVEL="debug"
+```
+
+Em testes, o logger usa `silent` por padrao para evitar ruido.
 
 ## Testes
 
@@ -318,6 +341,7 @@ O CI sobe PostgreSQL 16 como service e usa `DATABASE_URL_TEST` com `schema=e2e_c
 - `DELETE /api/v1/incidents/:id` faz soft delete.
 - Paginacao usa `page` default `1`, `limit` default `10` e `limit` maximo `100`.
 - Ordenacao padrao da listagem de incidentes: `createdAt desc`.
+- Logs estruturados com `requestId`, redaction e operacoes principais.
 
 ## Pos-MVP
 
@@ -325,7 +349,7 @@ Ficaram documentados como evolucao futura:
 
 - Regras especificas por role.
 - Purge/anonimizacao de soft delete antigo.
-- Logs estruturados com Pino/NestJS-Pino.
+- Observabilidade avancada com OpenTelemetry, metricas, dashboards e envio para ferramenta externa.
 - Migracao eventual de Jest para Vitest.
 - CQRS completo com read models/projecoes, se houver necessidade.
 - DDD mais profundo com bounded contexts reais, se o dominio crescer.

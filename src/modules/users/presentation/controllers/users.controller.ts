@@ -15,6 +15,7 @@ import {
   unauthorizedErrorExample,
   validationErrorSchema,
 } from '../../../../shared/presentation/openapi/error.openapi';
+import { LogOperation } from '../../../../shared/presentation/logging/log-operation.decorator';
 import { UserOutput } from '../../application/dtos/user-output';
 import { GetUserByIdUseCase } from '../../application/use-cases/get-user-by-id.use-case';
 import { ListUsersUseCase } from '../../application/use-cases/list-users.use-case';
@@ -39,6 +40,7 @@ export class UsersController {
   ) {}
 
   @Get()
+  @LogOperation('users.list')
   @ApiOperation({
     summary: 'List users',
     description: 'Lists active users available for incident assignment.',
@@ -61,6 +63,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @LogOperation('users.get')
   @ApiOperation({
     summary: 'Get user by ID',
     description: 'Returns public data for one active user.',

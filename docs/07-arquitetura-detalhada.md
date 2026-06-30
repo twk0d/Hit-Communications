@@ -354,8 +354,12 @@ Decisao aprovada:
 
 Decisao aprovada:
 
-- Logs estruturados ficam para pos-MVP.
-- No MVP, priorizar entrega dos requisitos obrigatorios, testes e documentacao.
+- Logs estruturados entram no MVP com Pino/NestJS-Pino.
+- Logging fica na infraestrutura/borda HTTP, sem acoplar use cases e dominio ao logger.
+- Toda resposta HTTP deve incluir `x-request-id`.
+- O backend deve reutilizar `x-request-id` recebido do cliente ou gerar um UUID quando ausente.
+- Redaction de dados sensiveis e obrigatoria para senha, hash, token, cookies, `Authorization` e secrets.
+- Observabilidade avancada com tracing, metricas, dashboards e envio para ferramenta externa fica para pos-MVP.
 
 ## Swagger/OpenAPI
 

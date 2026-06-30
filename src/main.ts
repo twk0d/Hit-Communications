@@ -1,12 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './shared/presentation/http-exception.filter';
 import { ZodValidationPipe } from './shared/presentation/zod-validation.pipe';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+
+  app.useLogger(app.get(Logger));
 
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ZodValidationPipe());

@@ -200,7 +200,11 @@ Decisao aprovada:
 
 Decisao aprovada:
 
-- Logs estruturados ficam para pos-MVP, para preservar prazo de entrega.
+- Logs estruturados entram no MVP com Pino/NestJS-Pino.
+- Toda resposta HTTP deve incluir `x-request-id`.
+- O backend deve reutilizar `x-request-id` recebido do cliente ou gerar um UUID quando ausente.
+- Dados sensiveis como senha, hash, token, cookies, `Authorization` e secrets devem ser mascarados nos logs.
+- Logs nao substituem RF06, historico persistido ou transacoes obrigatorias.
 
 ## Swagger
 

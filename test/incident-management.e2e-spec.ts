@@ -81,6 +81,7 @@ describe('HIT Communications API (e2e)', () => {
     process.env.DATABASE_URL = databaseUrl;
     process.env.JWT_SECRET = process.env.JWT_SECRET ?? 'e2e-test-secret';
     process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN ?? '1h';
+    process.env.LOG_LEVEL = process.env.LOG_LEVEL ?? 'silent';
 
     await ensureSchema(databaseUrl);
     runMigrations(databaseUrl);
@@ -160,6 +161,25 @@ describe('HIT Communications API (e2e)', () => {
       });
 
     await request(getHttpServer()).get('/api/v1/incidents').expect(401);
+  });
+
+  it('returns x-request-id and reuses the value sent by the client', async () => {
+    const providedRequestId = `e2e-request-${Date.now()}`;
+
+    await request(getHttpServer())
+      .get('/api/v1/incidents')
+      .set('x-request-id', providedRequestId)
+      .expect(401)
+      .expect(({ headers }) => {
+        expect(headers['x-request-id']).toBe(providedRequestId);
+      });
+
+    await request(getHttpServer())
+      .get('/api/v1/incidents')
+      .expect(401)
+      .expect(({ headers }) => {
+        expect(headers['x-request-id']).toEqual(expect.stringMatching(uuidRegex));
+      });
   });
 
   it('creates and fetches an incident with PostgreSQL persistence', async () => {

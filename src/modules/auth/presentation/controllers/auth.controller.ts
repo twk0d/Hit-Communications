@@ -16,6 +16,7 @@ import {
   unauthorizedErrorExample,
   validationErrorSchema,
 } from '../../../../shared/presentation/openapi/error.openapi';
+import { LogOperation } from '../../../../shared/presentation/logging/log-operation.decorator';
 import { UserOutput } from '../../../users/application/dtos/user-output';
 import {
   userExample,
@@ -51,6 +52,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @LogOperation('auth.register')
   @ApiOperation({
     summary: 'Register a user',
     description: 'Creates a public user account and returns public user data.',
@@ -88,6 +90,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
+  @LogOperation('auth.login')
   @ApiOperation({
     summary: 'Login',
     description: 'Authenticates a user and returns a JWT access token.',
@@ -127,6 +130,7 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @LogOperation('auth.me')
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Get authenticated user',

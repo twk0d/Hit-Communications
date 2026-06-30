@@ -31,6 +31,7 @@ import {
   unauthorizedErrorExample,
   validationErrorSchema,
 } from '../../../../shared/presentation/openapi/error.openapi';
+import { LogOperation } from '../../../../shared/presentation/logging/log-operation.decorator';
 import { CurrentUser } from '../../../auth/presentation/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../../auth/infra/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '../../../auth/infra/types/authenticated-user';
@@ -87,6 +88,7 @@ export class IncidentsController {
   ) {}
 
   @Post()
+  @LogOperation('incident.create')
   @ApiOperation({
     summary: 'Create incident',
     description: 'Creates an incident with initial status OPEN.',
@@ -130,6 +132,7 @@ export class IncidentsController {
   }
 
   @Get()
+  @LogOperation('incident.list')
   @ApiOperation({
     summary: 'List incidents',
     description: 'Lists active incidents with filters, pagination and createdAt desc ordering.',
@@ -265,6 +268,7 @@ export class IncidentsController {
   }
 
   @Get(':id')
+  @LogOperation('incident.get')
   @ApiOperation({
     summary: 'Get incident by ID',
     description: 'Returns one active incident by UUID.',
@@ -305,6 +309,7 @@ export class IncidentsController {
   }
 
   @Get(':id/history')
+  @LogOperation('incident.history.list')
   @ApiOperation({
     summary: 'Get incident history',
     description: 'Returns incident history ordered by changedAt descending.',
@@ -350,6 +355,7 @@ export class IncidentsController {
   }
 
   @Patch(':id/resolve')
+  @LogOperation('incident.resolve')
   @ApiOperation({
     summary: 'Resolve incident',
     description: 'Sets status to RESOLVED and fills resolvedAt automatically.',
@@ -403,6 +409,7 @@ export class IncidentsController {
   }
 
   @Patch(':id')
+  @LogOperation('incident.update')
   @ApiOperation({
     summary: 'Update incident',
     description:
@@ -482,6 +489,7 @@ export class IncidentsController {
 
   @Delete(':id')
   @HttpCode(204)
+  @LogOperation('incident.softDelete')
   @ApiOperation({
     summary: 'Soft delete incident',
     description: 'Marks the incident as deleted by filling deletedAt.',
