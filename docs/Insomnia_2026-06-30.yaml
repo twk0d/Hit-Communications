@@ -1,0 +1,406 @@
+type: collection.insomnia.rest/5.0
+schema_version: '5.1'
+name: Teste Técnico
+meta:
+  id: wrk_b43e3d9fa1094fb991d495be460f6adc
+  created: 1782754684525
+  modified: 1782754684525
+  description: ''
+collection:
+  - name: User
+    meta:
+      id: fld_80b73ec53e5f4fef9f7bd608d5ac16e4
+      created: 1782764048922
+      modified: 1782764048922
+      sortKey: -1782764048922
+      description: ''
+    children:
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/users'
+        name: All Users
+        meta:
+          id: req_3530fd16d3084c6ca18ea387fd3fe9e7
+          created: 1782787904354
+          modified: 1782794592984
+          isPrivate: false
+          description: ''
+          sortKey: -1782787904354
+        method: GET
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/users/:id'
+        name: User Info
+        meta:
+          id: req_22096ddbdbed4615a2804d1dac336ce1
+          created: 1782787982174
+          modified: 1782794597939
+          isPrivate: false
+          description: ''
+          sortKey: -1782787772959.5
+        method: GET
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: '{{ _.SeedUserId }}'
+  - name: Auth
+    meta:
+      id: fld_ff4c37f0b2914189924a8f98c65f7633
+      created: 1782786928763
+      modified: 1782786928763
+      sortKey: -1782786928763
+      description: ''
+    children:
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/auth/register'
+        name: Register
+        meta:
+          id: req_7848e76cb8ef4d9b9a04c14b46893300
+          created: 1782786962496
+          modified: 1782794583853
+          isPrivate: false
+          description: ''
+          sortKey: -1782787641665
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "name": "{{ _.RegisterName }}",
+              "email": "{{ _.RegisterEmail }}",
+              "password": "{{ _.RegisterPassword }}"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/auth/login'
+        name: Login
+        meta:
+          id: req_e3a26e23e2684e37832b20fd6f64214e
+          created: 1782787479366
+          modified: 1782794587514
+          isPrivate: false
+          description: ''
+          sortKey: -1782787641615
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "email": "{{ _.UserEmail }}",
+              "password": "{{ _.UserPassword }}"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/auth/me'
+        name: Me
+        meta:
+          id: req_484ed98634bf4605bcaa920cb84f2104
+          created: 1782787641565
+          modified: 1782794721904
+          isPrivate: false
+          description: ''
+          sortKey: -1782787641565
+        method: GET
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+  - name: Incidents
+    meta:
+      id: fld_44b93b29893a4570a8f5dc3eeb1b191b
+      created: 1782788038878
+      modified: 1782788038878
+      sortKey: -1782788038878
+      description: ''
+    children:
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/incidents'
+        name: Create Incident
+        meta:
+          id: req_7f1fbe66c4d649739b5bf49547346918
+          created: 1782788044976
+          modified: 1782794531445
+          isPrivate: false
+          description: ''
+          sortKey: -1782788419219
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+              "title": "Exemplo de título",
+              "description": "Descrição detalhada da tarefa",
+              "category": "SYSTEM",
+              "priority": "HIGH",
+              "assigneeId": "{{ _.SeedUserId }}"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+          prefix: ''
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/incidents/:id'
+        name: Incident Info
+        meta:
+          id: req_e8021bd24c6c4b4c9d0907ab9cd75e6e
+          created: 1782788419119
+          modified: 1782794536960
+          isPrivate: false
+          description: ''
+          sortKey: -1782788419119
+        method: GET
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: '{{ _.SeedIncidentId }}'
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/incidents'
+        name: All Incidents
+        meta:
+          id: req_3ca05beab9434470866b30ce4a901a89
+          created: 1782788937225
+          modified: 1782837272302
+          isPrivate: false
+          description: ''
+          sortKey: -1782788419169
+        method: GET
+        parameters:
+          - name: status
+            value: OPEN
+            description: ''
+            disabled: true
+          - name: priority
+            value: HIGH
+            description: ''
+            disabled: true
+          - name: category
+            value: ''
+            description: ''
+            disabled: true
+          - name: assigneeId
+            value: '{{ _.SeedUserId }}'
+            description: ''
+            disabled: true
+          - name: createdFrom
+            value: ''
+            description: ''
+            disabled: true
+          - name: createdTo
+            value: ''
+            description: ''
+            disabled: true
+          - name: resolvedFrom
+            value: ''
+            description: ''
+            disabled: true
+          - name: resolvedTo
+            value: ''
+            description: ''
+            disabled: true
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/incidents/:id'
+        name: Update Incident
+        meta:
+          id: req_8f3a056e5459446a9d076b8f95233c01
+          created: 1782789900956
+          modified: 1782794540410
+          isPrivate: false
+          description: ''
+          sortKey: -1782788384043.0938
+        method: PATCH
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"title": "Exemplo de título",
+            	"description": "Descrição detalhada da tarefa",
+            	"priority": "HIGH",
+            	"status": "IN_PROGRESS",
+            	"assigneeId": "{{ _.SeedAdminUserId }}"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+        authentication:
+          type: bearer
+          disabled: false
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: '{{ _.SeedIncidentId }}'
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/incidents/:id/resolve'
+        name: Resolve Incident
+        meta:
+          id: req_10bbf7310ea9470d9a4cf283c835145d
+          created: 1782790742579
+          modified: 1782794542211
+          isPrivate: false
+          description: ''
+          sortKey: -1782788372351.125
+        method: PATCH
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: '{{ _.SeedIncidentToResolveId }}'
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/incidents/:id'
+        name: (Soft) Delete Incident
+        meta:
+          id: req_4f94808f229c435ba4f9c0a15b2182ca
+          created: 1782791392149
+          modified: 1782794544072
+          isPrivate: false
+          description: ''
+          sortKey: -1782788372251.125
+        method: DELETE
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: '{{ _.SeedIncidentToDeleteId }}'
+      - url: '{{ _.BaseURL }}/api/{{ _.ApiVersion }}/incidents/:id/history'
+        name: Incident History
+        meta:
+          id: req_6613453bf98f44f49a96127f97a6c056
+          created: 1782791842249
+          modified: 1782794538656
+          isPrivate: false
+          description: ''
+          sortKey: -1782788407427.0312
+        method: GET
+        authentication:
+          type: bearer
+          token: '{{ _.JWToken }}'
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+        pathParameters:
+          - name: id
+            value: '{{ _.SeedIncidentId }}'
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_ae3720d6bfbdb168c866d416b11d89e57d22b552
+    created: 1782754684530
+    modified: 1782754684530
+environments:
+  name: Base Environment
+  meta:
+    id: env_ae3720d6bfbdb168c866d416b11d89e57d22b552
+    created: 1782754684528
+    modified: 1782837122309
+    isPrivate: false
+  data:
+    BaseURL: http://localhost:3000
+    ApiVersion: v1
+    JWToken: ''
+    RegisterName: Demo Register User
+    RegisterEmail: demo.register@hit.local
+    RegisterPassword: Demo123!
+    UserEmail: user@hit.local
+    UserPassword: User123!
+    SeedAdminUserId: cf859f02-e83f-4b78-8f5b-6944ca5fd38a
+    SeedUserId: 356b57c6-9b8a-4576-8df6-cbd9799d8295
+    SeedIncidentId: 10000000-0000-4000-8000-000000000001
+    SeedIncidentToResolveId: 10000000-0000-4000-8000-000000000002
+    SeedIncidentToDeleteId: 10000000-0000-4000-8000-000000000003
