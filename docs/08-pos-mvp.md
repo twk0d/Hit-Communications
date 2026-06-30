@@ -83,7 +83,7 @@ Soft delete preserva rastreabilidade e evita perda acidental no curto e medio pr
 
 ### O que
 
-Evoluir a observabilidade alem dos logs estruturados ja incluidos no MVP com `pino` e `nestjs-pino`.
+Evoluir a observabilidade alem dos logs estruturados e da stack local Grafana/Loki/Alloy ja incluidos no MVP.
 
 Plano detalhado:
 
@@ -105,13 +105,13 @@ Possiveis evolucoes:
 - OpenTelemetry.
 - Tracing distribuido.
 - Metricas Prometheus.
-- Dashboards.
+- Dashboards de producao.
 - Alertas.
-- Envio para Grafana Loki, Datadog, ELK/OpenSearch, CloudWatch ou ferramenta equivalente.
+- Envio para Grafana Cloud, Datadog, ELK/OpenSearch, CloudWatch ou ferramenta equivalente.
 
 ### Por que
 
-Logs estruturados deixaram de ser pos-MVP e foram promovidos para a entrega principal. O que fica como pos-MVP e a camada de observabilidade completa ao redor deles.
+Logs estruturados e observabilidade local deixaram de ser pos-MVP e foram promovidos para a entrega principal. O que fica como pos-MVP e a camada de observabilidade de producao ao redor deles.
 
 ### Beneficios
 

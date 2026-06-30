@@ -14,10 +14,49 @@ describe('createPinoHttpOptions', () => {
     const options = createPinoHttpOptions(
       makeConfig({
         NODE_ENV: 'test',
+        LOG_FORMAT: 'pretty',
       }),
     );
 
     expect(options.level).toBe('silent');
+    expect(options.transport).toBeUndefined();
+  });
+
+  it('enables pino-pretty only for explicit local development logs', () => {
+    const options = createPinoHttpOptions(
+      makeConfig({
+        NODE_ENV: 'development',
+        LOG_FORMAT: 'pretty',
+      }),
+    );
+
+    expect(options.transport).toEqual({
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        ignore: 'pid,hostname',
+        singleLine: false,
+        translateTime: 'SYS:standard',
+      },
+    });
+  });
+
+  it('keeps JSON logs as the default outside local development', () => {
+    const productionOptions = createPinoHttpOptions(
+      makeConfig({
+        NODE_ENV: 'production',
+        LOG_FORMAT: 'pretty',
+      }),
+    );
+    const developmentJsonOptions = createPinoHttpOptions(
+      makeConfig({
+        NODE_ENV: 'development',
+        LOG_FORMAT: 'json',
+      }),
+    );
+
+    expect(productionOptions.transport).toBeUndefined();
+    expect(developmentJsonOptions.transport).toBeUndefined();
   });
 
   it('keeps sensitive fields redacted from structured logs', () => {
@@ -51,5 +90,33 @@ describe('createPinoHttpOptions', () => {
     expect(
       options.customLogLevel?.({} as never, { statusCode: 200 } as never, new Error('boom')),
     ).toBe('error');
+  });
+
+  it('keeps statusCode available as a top-level log field for Loki queries', () => {
+    const options = createPinoHttpOptions(makeConfig({}));
+
+    expect(
+      options.customSuccessObject?.({} as never, { statusCode: 201 } as never, {
+        requestId: 'request-id',
+      }),
+    ).toEqual({
+      requestId: 'request-id',
+      statusCode: 201,
+    });
+    expect(
+      options.customErrorObject?.(
+        {} as never,
+        { statusCode: 500 } as never,
+        new Error('boom'),
+        {
+          requestId: 'request-id',
+        },
+      ),
+    ).toEqual({
+      errorMessage: 'boom',
+      errorName: 'Error',
+      requestId: 'request-id',
+      statusCode: 500,
+    });
   });
 });

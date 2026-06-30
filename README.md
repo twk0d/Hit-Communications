@@ -34,6 +34,7 @@ As decisoes e detalhes do projeto estao documentados em:
 - [docs/09-plano-de-implementacao.md](docs/09-plano-de-implementacao.md)
 - [docs/10-plano-logs-estruturados.md](docs/10-plano-logs-estruturados.md)
 - [docs/11-plano-benchmark-k6.md](docs/11-plano-benchmark-k6.md)
+- [docs/12-plano-observabilidade-local.md](docs/12-plano-observabilidade-local.md)
 
 Collection Insomnia:
 
@@ -69,6 +70,9 @@ DATABASE_URL_TEST="postgresql://hit:hit@localhost:5432/hit_incidents?schema=e2e_
 JWT_SECRET="change-me-in-local-development"
 JWT_EXPIRES_IN="1h"
 LOG_LEVEL="debug"
+LOG_FORMAT="pretty"
+GRAFANA_ADMIN_USER="admin"
+GRAFANA_ADMIN_PASSWORD="admin"
 ```
 
 Conexao local com o PostgreSQL do Docker:
@@ -239,9 +243,68 @@ Nivel de log:
 
 ```env
 LOG_LEVEL="debug"
+LOG_FORMAT="pretty"
 ```
 
-Em testes, o logger usa `silent` por padrao para evitar ruido.
+`LOG_FORMAT=pretty` ativa `pino-pretty` apenas em `NODE_ENV=development`, deixando o terminal local mais legivel durante `npm run start:dev`.
+
+Para containers, producao e observabilidade com Grafana/Loki, mantenha JSON estruturado:
+
+```env
+LOG_FORMAT="json"
+```
+
+Em testes, o logger usa `silent` por padrao para evitar ruido, mesmo que `LOG_FORMAT=pretty` esteja definido.
+
+## Observabilidade Local
+
+O projeto inclui uma stack opcional com Grafana, Loki e Alloy para visualizar os logs dos containers Docker.
+
+Subir API, PostgreSQL e observabilidade:
+
+```bash
+docker compose --profile api --profile observability up --build
+```
+
+Se o banco ainda nao tiver tabelas e dados demo, rode antes:
+
+```bash
+docker compose up -d postgres
+npm run prisma:migrate:dev
+npm run prisma:seed
+```
+
+Acessos locais:
+
+```txt
+Grafana: http://localhost:3001
+User: admin
+Password: admin
+Loki: http://localhost:3100
+Alloy: http://localhost:12345
+```
+
+O Grafana ja sobe com datasource Loki e dashboard `HIT API Logs` provisionados.
+
+Queries LogQL uteis:
+
+```txt
+{service="api"} | json
+```
+
+```txt
+{service="api"} | json | operation="incident.resolve"
+```
+
+```txt
+{service="api"} | json | requestId="abc-123"
+```
+
+```txt
+{service="api"} | json | incidentId="10000000-0000-4000-8000-000000000001"
+```
+
+Observacao: Alloy coleta logs dos containers com label `hit.service=api`. Se voce rodar a API via `npm run start:dev`, use os logs do terminal com `pino-pretty`; para ver no Grafana, rode a API pelo Docker Compose.
 
 ## Testes
 
@@ -349,7 +412,7 @@ Ficaram documentados como evolucao futura:
 
 - Regras especificas por role.
 - Purge/anonimizacao de soft delete antigo.
-- Observabilidade avancada com OpenTelemetry, metricas, dashboards e envio para ferramenta externa.
+- Observabilidade avancada de producao com OpenTelemetry, metricas, alertas e envio para ferramenta externa.
 - Migracao eventual de Jest para Vitest.
 - CQRS completo com read models/projecoes, se houver necessidade.
 - DDD mais profundo com bounded contexts reais, se o dominio crescer.

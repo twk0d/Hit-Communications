@@ -359,7 +359,7 @@ Decisao aprovada:
 - Toda resposta HTTP deve incluir `x-request-id`.
 - O backend deve reutilizar `x-request-id` recebido do cliente ou gerar um UUID quando ausente.
 - Redaction de dados sensiveis e obrigatoria para senha, hash, token, cookies, `Authorization` e secrets.
-- Observabilidade avancada com tracing, metricas, dashboards e envio para ferramenta externa fica para pos-MVP.
+- Observabilidade avancada de producao com tracing, metricas, alertas e envio para ferramenta externa fica para pos-MVP.
 
 ## Swagger/OpenAPI
 

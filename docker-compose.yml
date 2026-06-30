@@ -28,11 +28,68 @@ services:
       DATABASE_URL: postgresql://hit:hit@postgres:5432/hit_incidents?schema=public
       JWT_SECRET: ${JWT_SECRET:-change-me-in-local-development}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      LOG_FORMAT: json
+    labels:
+      hit.service: api
+      hit.environment: local
     ports:
       - '3000:3000'
     depends_on:
       postgres:
         condition: service_healthy
 
+  loki:
+    profiles:
+      - observability
+    image: grafana/loki:3.4.2
+    container_name: hit-communications-loki
+    restart: unless-stopped
+    command: ['-config.file=/etc/loki/loki-config.yaml']
+    ports:
+      - '3100:3100'
+    volumes:
+      - ./observability/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - loki_data:/loki
+
+  alloy:
+    profiles:
+      - observability
+    image: grafana/alloy:v1.7.5
+    container_name: hit-communications-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    ports:
+      - '12345:12345'
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+
+  grafana:
+    profiles:
+      - observability
+    image: grafana/grafana:11.5.2
+    container_name: hit-communications-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_DEFAULT_THEME: light
+    ports:
+      - '3001:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - loki
+
 volumes:
   postgres_data:
+  loki_data:
+  grafana_data:
