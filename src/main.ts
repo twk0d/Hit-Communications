@@ -16,7 +16,15 @@ async function bootstrap(): Promise<void> {
     .setTitle('HIT Communications Incident Management API')
     .setDescription('API REST para gerenciamento de incidentes operacionais.')
     .setVersion('1.0.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'JWT access token obtido em POST /api/v1/auth/login.',
+      },
+      'access-token',
+    )
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
