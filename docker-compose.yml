@@ -89,6 +89,28 @@ services:
     depends_on:
       - loki
 
+  k6:
+    profiles:
+      - benchmark
+    image: grafana/k6:latest
+    container_name: hit-communications-k6
+    entrypoint: ['k6']
+    command: ['version']
+    working_dir: /scripts
+    environment:
+      K6_BASE_URL: ${K6_BASE_URL:-http://api:3000/api/v1}
+      K6_EMAIL: ${K6_EMAIL:-admin@hit.local}
+      K6_PASSWORD: ${K6_PASSWORD:-Admin123!}
+      K6_ASSIGNEE_ID: ${K6_ASSIGNEE_ID:-356b57c6-9b8a-4576-8df6-cbd9799d8295}
+      K6_INCIDENT_ID: ${K6_INCIDENT_ID:-10000000-0000-4000-8000-000000000001}
+      K6_THINK_TIME_SECONDS: ${K6_THINK_TIME_SECONDS:-1}
+      K6_REQUEST_TIMEOUT: ${K6_REQUEST_TIMEOUT:-30s}
+    volumes:
+      - ./benchmarks/k6:/scripts:ro
+      - ./benchmarks/results:/results
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
   loki_data:

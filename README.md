@@ -17,6 +17,7 @@ O projeto implementa um monolito modular em NestJS com Clean Architecture orient
 - JWT.
 - Argon2id.
 - Pino/NestJS-Pino.
+- k6.
 - GitHub Actions.
 
 ## Documentacao
@@ -305,6 +306,78 @@ Queries LogQL uteis:
 ```
 
 Observacao: Alloy coleta logs dos containers com label `hit.service=api`. Se voce rodar a API via `npm run start:dev`, use os logs do terminal com `pino-pretty`; para ver no Grafana, rode a API pelo Docker Compose.
+
+## Benchmark Local
+
+O projeto inclui cenarios k6 para smoke, baseline, load, stress, spike e soak.
+
+Preparar banco e dados demo uma vez:
+
+```bash
+npm run bench:db
+npm run bench:prepare
+```
+
+O `bench:db` aguarda o PostgreSQL ficar healthy. Para o `bench:prepare`,
+deixe o `DATABASE_URL` local apontando para `localhost:5432`, pois esse comando
+roda fora da rede Docker.
+
+Subir a stack em Docker:
+
+```bash
+docker compose --profile api up --build
+```
+
+Ou, se quiser Grafana/Loki junto:
+
+```bash
+docker compose --profile api --profile observability up --build
+```
+
+Depois que a API estiver rodando no Compose, use outro terminal para executar os
+cenarios k6:
+
+```bash
+npm run k6:smoke
+npm run k6:baseline
+npm run k6:load
+```
+
+Os cenarios exploratorios ficam separados porque geram mais carga:
+
+```bash
+npm run k6:stress
+npm run k6:spike
+npm run k6:soak
+```
+
+Se preferir subir a API em background, os atalhos antigos continuam disponiveis:
+
+```bash
+npm run bench:stack
+npm run bench:stack:observability
+```
+
+Os summaries sao gerados em:
+
+```txt
+benchmarks/results/
+```
+
+Variaveis principais:
+
+```txt
+K6_EMAIL
+K6_PASSWORD
+K6_ASSIGNEE_ID
+K6_INCIDENT_ID
+K6_THINK_TIME_SECONDS
+K6_REQUEST_TIMEOUT
+```
+
+Ao rodar k6 via Docker Compose, o `K6_BASE_URL` padrao e `http://api:3000/api/v1`. Se rodar k6 instalado diretamente na maquina, use `K6_BASE_URL=http://localhost:3000/api/v1`.
+
+Os benchmarks sao uma linha de base local. Registre ambiente, commit, modo de execucao da API e tamanho do dataset antes de comparar resultados.
 
 ## Testes
 

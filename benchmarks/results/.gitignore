@@ -1,0 +1,4 @@
+*-summary.json
+*-summary.md
+!README.md
+!.gitignore
