@@ -16,6 +16,7 @@ import { IncidentStatus } from '../../domain/enums/incident-status.enum';
 import { CreateIncidentUseCase } from '../../application/use-cases/create-incident.use-case';
 import { GetIncidentByIdUseCase } from '../../application/use-cases/get-incident-by-id.use-case';
 import { ListIncidentsUseCase } from '../../application/use-cases/list-incidents.use-case';
+import { UpdateIncidentUseCase } from '../../application/use-cases/update-incident.use-case';
 import { IncidentsController } from './incidents.controller';
 
 const request = supertest as unknown as supertest.SuperTestStatic;
@@ -49,6 +50,15 @@ const incidentsListOutput = {
   },
 };
 
+const updatedIncidentOutput = {
+  ...incidentOutput,
+  title: 'VPN degraded',
+  description: 'VPN access is unstable for remote users.',
+  priority: IncidentPriority.CRITICAL,
+  status: IncidentStatus.IN_PROGRESS,
+  updatedAt: '2026-06-29T13:00:00.000Z',
+};
+
 describe('IncidentsController', () => {
   let app: INestApplication;
   const jwtService = new JwtService({
@@ -63,11 +73,15 @@ describe('IncidentsController', () => {
   const getIncidentByIdUseCase = {
     execute: jest.fn(),
   };
+  const updateIncidentUseCase = {
+    execute: jest.fn(),
+  };
 
   beforeEach(async () => {
     createIncidentUseCase.execute.mockResolvedValue(incidentOutput);
     listIncidentsUseCase.execute.mockResolvedValue(incidentsListOutput);
     getIncidentByIdUseCase.execute.mockResolvedValue(incidentOutput);
+    updateIncidentUseCase.execute.mockResolvedValue(updatedIncidentOutput);
 
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -88,6 +102,10 @@ describe('IncidentsController', () => {
         {
           provide: GetIncidentByIdUseCase,
           useValue: getIncidentByIdUseCase,
+        },
+        {
+          provide: UpdateIncidentUseCase,
+          useValue: updateIncidentUseCase,
         },
         {
           provide: ConfigService,
@@ -281,6 +299,148 @@ describe('IncidentsController', () => {
     await request(app.getHttpServer())
       .get(`/api/v1/incidents/${incidentOutput.id}`)
       .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404)
+      .expect({
+        statusCode: 404,
+        message: 'Incident not found',
+      });
+  });
+
+  it('updates an incident through the protected endpoint', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        title: ' VPN degraded ',
+        description: ' VPN access is unstable for remote users. ',
+        priority: IncidentPriority.CRITICAL,
+        status: IncidentStatus.IN_PROGRESS,
+        assigneeId: authenticatedUser.id,
+      })
+      .expect(200)
+      .expect(updatedIncidentOutput);
+
+    expect(updateIncidentUseCase.execute).toHaveBeenCalledWith({
+      id: incidentOutput.id,
+      title: 'VPN degraded',
+      description: 'VPN access is unstable for remote users.',
+      priority: IncidentPriority.CRITICAL,
+      status: IncidentStatus.IN_PROGRESS,
+      assigneeId: authenticatedUser.id,
+      changedById: authenticatedUser.id,
+    });
+  });
+
+  it('rejects update endpoint without bearer token', async () => {
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}`)
+      .send({
+        title: 'VPN degraded',
+      })
+      .expect(401);
+  });
+
+  it('returns 422 when generic update tries to resolve an incident', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        status: IncidentStatus.RESOLVED,
+      })
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          statusCode: 422,
+          message: 'Validation failed',
+          errors: [
+            {
+              field: 'status',
+              message: 'Status must be OPEN, IN_PROGRESS or CANCELED',
+            },
+          ],
+        });
+      });
+
+    expect(updateIncidentUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('returns 422 for empty update payload', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({})
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          statusCode: 422,
+          message: 'Validation failed',
+          errors: [
+            {
+              field: 'body',
+              message: 'At least one field must be provided',
+            },
+          ],
+        });
+      });
+
+    expect(updateIncidentUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('returns 422 for invalid update payload', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        title: '',
+        description: 'short',
+        priority: 'WRONG',
+        assigneeId: 'not-a-uuid',
+      })
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body.statusCode).toBe(422);
+        expect(body.message).toBe('Validation failed');
+        expect(body.errors).toEqual(
+          expect.arrayContaining([
+            {
+              field: 'title',
+              message: 'Title must be at least 3 characters',
+            },
+            {
+              field: 'description',
+              message: 'Description must be at least 10 characters',
+            },
+            {
+              field: 'assigneeId',
+              message: 'Assignee id must be a valid UUID',
+            },
+          ]),
+        );
+      });
+
+    expect(updateIncidentUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('maps update incident not found to 404', async () => {
+    const accessToken = await createAccessToken();
+    updateIncidentUseCase.execute.mockRejectedValueOnce(
+      new ResourceNotFoundError('Incident not found'),
+    );
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({
+        title: 'VPN degraded',
+      })
       .expect(404)
       .expect({
         statusCode: 404,

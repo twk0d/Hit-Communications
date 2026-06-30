@@ -9,11 +9,13 @@ import { JwtAuthGuard } from '../auth/infra/guards/jwt-auth.guard';
 import { USERS_REPOSITORY, UsersRepository } from '../users/domain/repositories/users.repository';
 import { UsersModule } from '../users/users.module';
 import {
+  IncidentsUnitOfWork,
   INCIDENTS_UNIT_OF_WORK,
 } from './application/transactions/incidents-unit-of-work';
 import { CreateIncidentUseCase } from './application/use-cases/create-incident.use-case';
 import { GetIncidentByIdUseCase } from './application/use-cases/get-incident-by-id.use-case';
 import { ListIncidentsUseCase } from './application/use-cases/list-incidents.use-case';
+import { UpdateIncidentUseCase } from './application/use-cases/update-incident.use-case';
 import {
   INCIDENT_HISTORY_REPOSITORY,
 } from './domain/repositories/incident-history.repository';
@@ -81,6 +83,22 @@ import { IncidentsController } from './presentation/controllers/incidents.contro
       inject: [INCIDENTS_REPOSITORY],
       useFactory: (incidentsRepository: IncidentsRepository) =>
         new ListIncidentsUseCase(incidentsRepository),
+    },
+    {
+      provide: UpdateIncidentUseCase,
+      inject: [INCIDENTS_UNIT_OF_WORK, USERS_REPOSITORY, ID_GENERATOR, CLOCK],
+      useFactory: (
+        incidentsUnitOfWork: IncidentsUnitOfWork,
+        usersRepository: UsersRepository,
+        idGenerator: IdGenerator,
+        clock: Clock,
+      ) =>
+        new UpdateIncidentUseCase(
+          incidentsUnitOfWork,
+          usersRepository,
+          idGenerator,
+          clock,
+        ),
     },
   ],
   exports: [

@@ -1,13 +1,26 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 
+import { CurrentUser } from '../../../auth/presentation/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../../auth/infra/guards/jwt-auth.guard';
+import { AuthenticatedUser } from '../../../auth/infra/types/authenticated-user';
 import { IncidentOutput } from '../../application/dtos/incident-output';
 import { CreateIncidentUseCase } from '../../application/use-cases/create-incident.use-case';
 import { GetIncidentByIdUseCase } from '../../application/use-cases/get-incident-by-id.use-case';
 import { ListIncidentsUseCase } from '../../application/use-cases/list-incidents.use-case';
+import { UpdateIncidentUseCase } from '../../application/use-cases/update-incident.use-case';
 import { CreateIncidentDto } from '../dtos/create-incident.dto';
 import { GetIncidentParamsDto } from '../dtos/get-incident-params.dto';
 import { ListIncidentsQueryDto } from '../dtos/list-incidents-query.dto';
+import { UpdateIncidentDto } from '../dtos/update-incident.dto';
 import { PaginatedResult } from '../../../../shared/application/pagination/pagination';
 
 @Controller('incidents')
@@ -17,6 +30,7 @@ export class IncidentsController {
     private readonly createIncidentUseCase: CreateIncidentUseCase,
     private readonly listIncidentsUseCase: ListIncidentsUseCase,
     private readonly getIncidentByIdUseCase: GetIncidentByIdUseCase,
+    private readonly updateIncidentUseCase: UpdateIncidentUseCase,
   ) {}
 
   @Post()
@@ -50,6 +64,23 @@ export class IncidentsController {
   getById(@Param() params: GetIncidentParamsDto): Promise<IncidentOutput> {
     return this.getIncidentByIdUseCase.execute({
       id: params.id,
+    });
+  }
+
+  @Patch(':id')
+  update(
+    @Param() params: GetIncidentParamsDto,
+    @Body() body: UpdateIncidentDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<IncidentOutput> {
+    return this.updateIncidentUseCase.execute({
+      id: params.id,
+      title: body.title,
+      description: body.description,
+      priority: body.priority,
+      assigneeId: body.assigneeId,
+      status: body.status,
+      changedById: user.id,
     });
   }
 }
