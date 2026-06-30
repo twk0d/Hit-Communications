@@ -86,3 +86,22 @@ npm test
 npm run build
 npm run test:e2e
 ```
+
+### Testes E2E
+
+A suite e2e usa PostgreSQL real e dados criados pelos proprios testes. Antes de rodar, configure `DATABASE_URL_TEST` no `.env` ou no ambiente. A suite carrega essa variavel, aplica as migrations com `prisma migrate deploy` antes de iniciar a aplicacao e limpa os dados entre os cenarios.
+
+Exemplo:
+
+```env
+DATABASE_URL_TEST="postgresql://hit:hit@localhost:5432/hit_incidents?schema=e2e_test"
+```
+
+Por seguranca, `DATABASE_URL_TEST` deve informar um schema explicito iniciado por `e2e_`. A suite falha antes de migrations ou limpeza se a URL apontar para `schema=public`, nao informar schema ou usar um nome fora desse padrao.
+
+```bash
+docker compose up -d postgres
+npm run test:e2e
+```
+
+Se precisar apontar para outro banco de teste, ajuste `DATABASE_URL_TEST` no `.env` mantendo um schema separado do desenvolvimento local, como `schema=e2e_ci`.
