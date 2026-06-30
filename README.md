@@ -51,6 +51,33 @@ A documentacao Swagger ficara disponivel em:
 http://localhost:3000/api/docs
 ```
 
+### Dados de Seed
+
+O comando abaixo popula dados de desenvolvimento para avaliacao manual:
+
+```bash
+npm run prisma:seed
+```
+
+Usuarios padrao:
+
+```txt
+Admin: admin@hit.local / Admin123!
+User:  user@hit.local / User123!
+```
+
+O seed tambem cria 16 incidentes demo:
+
+- 14 incidentes ativos e 2 incidentes removidos logicamente.
+- 4 incidentes por status: `OPEN`, `IN_PROGRESS`, `RESOLVED` e `CANCELED`.
+- Prioridades distribuidas entre `LOW`, `MEDIUM`, `HIGH` e `CRITICAL`.
+- Categorias distribuidas entre `SYSTEM`, `NETWORK`, `INFRASTRUCTURE`, `ACCESS`, `DATA` e `PROCESS`.
+- Responsaveis alternados entre os usuarios padrao.
+- Datas de criacao e resolucao espalhadas para testar filtros por periodo.
+- Historico de alteracoes em parte dos incidentes, incluindo resolucoes com `status` e `resolvedAt`.
+
+Esses dados sao voltados para uso manual em Swagger, Insomnia ou chamadas locais. A suite e2e deve usar banco de teste isolado e dados proprios.
+
 ### Scripts Principais
 
 ```bash
