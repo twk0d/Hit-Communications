@@ -14,6 +14,7 @@ import { IncidentCategory } from '../../domain/enums/incident-category.enum';
 import { IncidentPriority } from '../../domain/enums/incident-priority.enum';
 import { IncidentStatus } from '../../domain/enums/incident-status.enum';
 import { CreateIncidentUseCase } from '../../application/use-cases/create-incident.use-case';
+import { GetIncidentByIdUseCase } from '../../application/use-cases/get-incident-by-id.use-case';
 import { IncidentsController } from './incidents.controller';
 
 const request = supertest as unknown as supertest.SuperTestStatic;
@@ -45,9 +46,13 @@ describe('IncidentsController', () => {
   const createIncidentUseCase = {
     execute: jest.fn(),
   };
+  const getIncidentByIdUseCase = {
+    execute: jest.fn(),
+  };
 
   beforeEach(async () => {
     createIncidentUseCase.execute.mockResolvedValue(incidentOutput);
+    getIncidentByIdUseCase.execute.mockResolvedValue(incidentOutput);
 
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -60,6 +65,10 @@ describe('IncidentsController', () => {
         {
           provide: CreateIncidentUseCase,
           useValue: createIncidentUseCase,
+        },
+        {
+          provide: GetIncidentByIdUseCase,
+          useValue: getIncidentByIdUseCase,
         },
         {
           provide: ConfigService,
@@ -110,6 +119,65 @@ describe('IncidentsController', () => {
 
   it('rejects create endpoint without bearer token', async () => {
     await request(app.getHttpServer()).post('/api/v1/incidents').expect(401);
+  });
+
+  it('gets an incident by id through the protected endpoint', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200)
+      .expect(incidentOutput);
+
+    expect(getIncidentByIdUseCase.execute).toHaveBeenCalledWith({
+      id: incidentOutput.id,
+    });
+  });
+
+  it('rejects get by id endpoint without bearer token', async () => {
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${incidentOutput.id}`)
+      .expect(401);
+  });
+
+  it('returns 422 for invalid incident id param', async () => {
+    const accessToken = await createAccessToken();
+
+    await request(app.getHttpServer())
+      .get('/api/v1/incidents/not-a-uuid')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(422)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          statusCode: 422,
+          message: 'Validation failed',
+          errors: [
+            {
+              field: 'id',
+              message: 'Incident id must be a valid UUID',
+            },
+          ],
+        });
+      });
+
+    expect(getIncidentByIdUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('maps incident not found to 404', async () => {
+    const accessToken = await createAccessToken();
+    getIncidentByIdUseCase.execute.mockRejectedValueOnce(
+      new ResourceNotFoundError('Incident not found'),
+    );
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/incidents/${incidentOutput.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404)
+      .expect({
+        statusCode: 404,
+        message: 'Incident not found',
+      });
   });
 
   it('returns 422 for invalid create payload', async () => {
