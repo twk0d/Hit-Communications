@@ -1,6 +1,6 @@
 import { sleep } from 'k6';
 
-import { THINK_TIME_SECONDS, loadThresholds } from '../config.js';
+import { THINK_TIME_SECONDS, cappedVus, loadThresholds } from '../config.js';
 import { randomInt } from '../helpers/data.js';
 import { login } from '../helpers/auth.js';
 import {
@@ -13,13 +13,15 @@ import {
 } from '../helpers/incidents.js';
 import { buildSummary } from '../helpers/summary.js';
 
+const loadVus = cappedVus(__ENV.K6_LOAD_VUS, 275);
+
 export const options = {
   scenarios: {
     load: {
       executor: 'ramping-vus',
       stages: [
-        { duration: __ENV.K6_LOAD_RAMP_UP || '30s', target: Number(__ENV.K6_LOAD_VUS || '50') },
-        { duration: __ENV.K6_LOAD_DURATION || '2m', target: Number(__ENV.K6_LOAD_VUS || '50') },
+        { duration: __ENV.K6_LOAD_RAMP_UP || '30s', target: loadVus },
+        { duration: __ENV.K6_LOAD_DURATION || '2m', target: loadVus },
         { duration: __ENV.K6_LOAD_RAMP_DOWN || '30s', target: 0 },
       ],
     },

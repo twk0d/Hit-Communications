@@ -1,6 +1,6 @@
 import { sleep } from 'k6';
 
-import { THINK_TIME_SECONDS, exploratoryThresholds } from '../config.js';
+import { THINK_TIME_SECONDS, cappedVus, exploratoryThresholds } from '../config.js';
 import { randomInt } from '../helpers/data.js';
 import { login } from '../helpers/auth.js';
 import {
@@ -16,7 +16,7 @@ export const options = {
   scenarios: {
     soak: {
       executor: 'constant-vus',
-      vus: Number(__ENV.K6_SOAK_VUS || '25'),
+      vus: cappedVus(__ENV.K6_SOAK_VUS, 125),
       duration: __ENV.K6_SOAK_DURATION || '10m',
     },
   },

@@ -1,6 +1,6 @@
 import { sleep } from 'k6';
 
-import { THINK_TIME_SECONDS, exploratoryThresholds } from '../config.js';
+import { THINK_TIME_SECONDS, cappedVus, exploratoryThresholds } from '../config.js';
 import { randomInt } from '../helpers/data.js';
 import { login } from '../helpers/auth.js';
 import {
@@ -12,15 +12,22 @@ import {
 } from '../helpers/incidents.js';
 import { buildSummary } from '../helpers/summary.js';
 
+const stressTargets = [
+  cappedVus(__ENV.K6_STRESS_STAGE_1_VUS, 100),
+  cappedVus(__ENV.K6_STRESS_STAGE_2_VUS, 200),
+  cappedVus(__ENV.K6_STRESS_STAGE_3_VUS, 325),
+  cappedVus(__ENV.K6_STRESS_STAGE_4_VUS, 425),
+];
+
 export const options = {
   scenarios: {
     stress: {
       executor: 'ramping-vus',
       stages: [
-        { duration: __ENV.K6_STRESS_STAGE_DURATION || '1m', target: 25 },
-        { duration: __ENV.K6_STRESS_STAGE_DURATION || '1m', target: 50 },
-        { duration: __ENV.K6_STRESS_STAGE_DURATION || '1m', target: 100 },
-        { duration: __ENV.K6_STRESS_STAGE_DURATION || '1m', target: 150 },
+        { duration: __ENV.K6_STRESS_STAGE_DURATION || '1m', target: stressTargets[0] },
+        { duration: __ENV.K6_STRESS_STAGE_DURATION || '1m', target: stressTargets[1] },
+        { duration: __ENV.K6_STRESS_STAGE_DURATION || '1m', target: stressTargets[2] },
+        { duration: __ENV.K6_STRESS_STAGE_DURATION || '1m', target: stressTargets[3] },
         { duration: '30s', target: 0 },
       ],
     },

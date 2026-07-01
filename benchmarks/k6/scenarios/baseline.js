@@ -1,6 +1,6 @@
 import { sleep } from 'k6';
 
-import { THINK_TIME_SECONDS, baselineThresholds } from '../config.js';
+import { THINK_TIME_SECONDS, baselineThresholds, cappedVus } from '../config.js';
 import { randomInt } from '../helpers/data.js';
 import {
   createIncident,
@@ -16,7 +16,7 @@ export const options = {
   scenarios: {
     baseline: {
       executor: 'constant-vus',
-      vus: Number(__ENV.K6_BASELINE_VUS || '10'),
+      vus: cappedVus(__ENV.K6_BASELINE_VUS, 100),
       duration: __ENV.K6_BASELINE_DURATION || '1m',
     },
   },

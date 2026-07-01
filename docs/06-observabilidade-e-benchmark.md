@@ -52,21 +52,38 @@ Para garantir que os resultados do benchmark tenham baseline consistente de máq
 
 > Se estiver rodando no Docker Desktop (Windows/Mac), certifique-se que seu Docker Engine global tenha pelo menos 4~6 CPUs liberadas, caso contrário, os contêineres "engasgarão".
 
+O teto operacional observado para esta configuração local foi definido em `K6_MAX_VUS=425`. Os cenários respeitam esse limite mesmo quando uma variável de VUs é configurada acima dele.
+
 ### Executando Benchmarks
 
 Primeiro suba a API e o DB com a rede configurada:
 ```bash
 npm run bench:db
 npm run bench:prepare  # (migrações e seed inicial)
-docker compose up -d --build
+npm run bench:stack
 ```
 
 Rode os cenários (em outro terminal):
+
+| Comando | Objetivo | Quando usar |
+| --- | --- | --- |
+| `npm run k6:smoke` | Valida rapidamente se login, listagem, filtros, detalhe, histórico, criação e resolução respondem com carga mínima. | Antes dos cenários maiores ou depois de subir a stack. |
+| `npm run k6:baseline` | Mede uma carga média esperada em uso normal, com predominância de leitura e poucas escritas. Default: 100 VUs. | Para criar um ponto de comparação saudável de latência, erros e throughput. |
+| `npm run k6:load` | Aplica carga alta planejada com rampa de subida, sustentação e rampa de descida. Default: 275 VUs. | Para avaliar se a API aguenta volume maior sem degradação relevante. |
+| `npm run k6:stress` | Aumenta progressivamente os usuários virtuais em degraus de 100, 200, 325 e 425 VUs. | Para descobrir gargalos sem ultrapassar o teto operacional conhecido. |
+| `npm run k6:spike` | Injeta um pico brusco e curto de tráfego até 425 VUs. | Para simular rajadas repentinas de uso e observar recuperação. |
+| `npm run k6:soak` | Mantém carga moderada por mais tempo. Default: 125 VUs. | Para encontrar degradação lenta, vazamento de memória ou acúmulo de conexões. |
+
+Ordem sugerida para uma bateria completa:
 ```bash
-npm run k6:smoke     # Valida se tudo funciona com carga irrisória
-npm run k6:baseline  # Carga média esperada em produção normal
-npm run k6:load      # Carga pesada
-npm run k6:stress    # Força a API ao limite (Ramping VUs) para ver onde quebra
+npm run k6:smoke
+npm run k6:baseline
+npm run k6:load
+npm run k6:stress
+npm run k6:spike
+npm run k6:soak
 ```
 
-Todos os resultados HTML gerados pelas execuções cairão automaticamente na pasta `benchmarks/results/`.
+Todos os resultados gerados pelas execuções cairão automaticamente na pasta `benchmarks/results/`.
+
+A análise consolidada dos resultados atuais está documentada em `docs/09-relatorio-performance-k6.md`.

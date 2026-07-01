@@ -37,6 +37,16 @@ services:
       hit.environment: local
     ports:
       - '3000:3000'
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const net=require(''node:net''); const socket=net.connect(3000,''127.0.0.1'',()=>{socket.end();process.exit(0)}); socket.on(''error'',()=>process.exit(1)); setTimeout(()=>process.exit(1),2000)"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,11 +117,33 @@ services:
       K6_INCIDENT_ID: ${K6_INCIDENT_ID:-10000000-0000-4000-8000-000000000001}
       K6_THINK_TIME_SECONDS: ${K6_THINK_TIME_SECONDS:-1}
       K6_REQUEST_TIMEOUT: ${K6_REQUEST_TIMEOUT:-30s}
+      K6_MAX_VUS: ${K6_MAX_VUS:-425}
+      K6_SMOKE_DURATION: ${K6_SMOKE_DURATION:-30s}
+      K6_BASELINE_VUS: ${K6_BASELINE_VUS:-100}
+      K6_BASELINE_DURATION: ${K6_BASELINE_DURATION:-1m}
+      K6_LOAD_VUS: ${K6_LOAD_VUS:-275}
+      K6_LOAD_RAMP_UP: ${K6_LOAD_RAMP_UP:-30s}
+      K6_LOAD_DURATION: ${K6_LOAD_DURATION:-2m}
+      K6_LOAD_RAMP_DOWN: ${K6_LOAD_RAMP_DOWN:-30s}
+      K6_STRESS_STAGE_DURATION: ${K6_STRESS_STAGE_DURATION:-1m}
+      K6_STRESS_STAGE_1_VUS: ${K6_STRESS_STAGE_1_VUS:-100}
+      K6_STRESS_STAGE_2_VUS: ${K6_STRESS_STAGE_2_VUS:-200}
+      K6_STRESS_STAGE_3_VUS: ${K6_STRESS_STAGE_3_VUS:-325}
+      K6_STRESS_STAGE_4_VUS: ${K6_STRESS_STAGE_4_VUS:-425}
+      K6_SPIKE_WARMUP_VUS: ${K6_SPIKE_WARMUP_VUS:-50}
+      K6_SPIKE_WARMUP: ${K6_SPIKE_WARMUP:-30s}
+      K6_SPIKE_PEAK_VUS: ${K6_SPIKE_PEAK_VUS:-425}
+      K6_SPIKE_DURATION: ${K6_SPIKE_DURATION:-30s}
+      K6_SPIKE_RECOVERY_VUS: ${K6_SPIKE_RECOVERY_VUS:-50}
+      K6_SPIKE_RECOVERY: ${K6_SPIKE_RECOVERY:-30s}
+      K6_SOAK_VUS: ${K6_SOAK_VUS:-125}
+      K6_SOAK_DURATION: ${K6_SOAK_DURATION:-10m}
     volumes:
       - ./benchmarks/k6:/scripts:ro
       - ./benchmarks/results:/results
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   postgres_data:
