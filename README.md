@@ -36,7 +36,7 @@ npm run prisma:seed
 ```
 
 A API estará disponível em `http://localhost:3000/api/v1`.  
-Para explorar via Swagger, acesse `http://localhost:3000/api/docs`.
+Para explorar via Swagger, acesse `http://localhost:3000/api/docs`.  
 Quando subir a stack com observabilidade, o Grafana estará disponível em `http://localhost:3001`.
 > O arquivo Insomnia pode ser encontrado em `docs/Insomnia_2026-06-30.yaml`.
 

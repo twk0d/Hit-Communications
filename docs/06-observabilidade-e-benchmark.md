@@ -32,12 +32,93 @@ Um dashboard `HIT API Logs` já estará provisionado lendo dados do Loki automat
 - Campos de senha, token JWT e Authorization são mascarados (redacted) para não vazar logs críticos.
 - O campo `operation` indica o use case rodando (ex: `operation="incident.resolve"`).
 
-**Exemplos de Queries LogQL úteis no Grafana:**
+### Dashboard provisionado
+
+O dashboard `HIT API Logs` é provisionado automaticamente no Grafana e usa os logs JSON enviados ao Loki. Ele permite acompanhar:
+
+- volume total de requests no período;
+- erros `4xx` e `5xx`;
+- latência HTTP média e p95 baseada em `responseTimeMs`;
+- requests por `statusCode`;
+- operações por intervalo;
+- duração média por `operation`;
+- paths HTTP mais acessados;
+- erros por `operation` e por `errorName`;
+- operações de incidentes por tipo, prioridade e categoria;
+- operações de autenticação;
+- busca operacional por `requestId` e `incidentId`;
+- logs recentes da API.
+
+Filtros disponíveis no topo do dashboard:
+
+- `operation`
+- `method`
+- `statusCode`
+- `path regex`
+- `priority`
+- `category`
+- `requestId regex`
+- `incidentId regex`
+
+### Queries LogQL úteis no Grafana
+
+Logs recentes da API:
 ```txt
 {service="api"} | json
+```
+
+Investigar uma operação específica:
+```txt
 {service="api"} | json | operation="incident.resolve"
+```
+
+Buscar uma requisição por `x-request-id`:
+```txt
 {service="api"} | json | requestId="uuid-da-requisicao"
 ```
+
+Buscar a trilha de logs relacionada a um incidente:
+```txt
+{service="api"} | json | incidentId="uuid-do-incidente"
+```
+
+Ver erros internos:
+```txt
+{service="api"} | json | statusCode >= 500
+```
+
+Ver validações rejeitadas:
+```txt
+{service="api"} | json | statusCode=422
+```
+
+Ver logins rejeitados:
+```txt
+{service="api"} | json | operation="auth.login" | errorName != ""
+```
+
+Ver falhas de regra de negócio na resolução:
+```txt
+{service="api"} | json | operation="incident.resolve" | errorName="BusinessRuleViolationError"
+```
+
+Calcular p95 de latência HTTP no intervalo selecionado:
+```txt
+quantile_over_time(0.95, {service="api"} | json | statusCode != "" | unwrap responseTimeMs | __error__="" [$__range])
+```
+
+Calcular duração média por operação:
+```txt
+avg by (operation) (avg_over_time({service="api"} | json | operation != "" | unwrap durationMs | __error__="" [$__interval]))
+```
+
+### Fluxo rápido de investigação
+
+1. Copie o `x-request-id` retornado pela API ou exibido no log.
+2. No dashboard, cole o valor em `requestId regex`.
+3. Se a investigação for de incidente, cole também o identificador em `incidentId regex`.
+4. Use `operation` para limitar o ruído, por exemplo `incident.update` ou `incident.resolve`.
+5. Em erros, confira `errorName`, `errorMessage`, `statusCode`, `path`, `userId` e `changedById`.
 
 ---
 
