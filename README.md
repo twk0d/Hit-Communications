@@ -12,8 +12,14 @@ npm install
 ```
 
 ### 2. Criar `.env`
+Linux/macOS:
 ```bash
 cp .env.example .env
+```
+
+PowerShell:
+```powershell
+Copy-Item .env.example .env
 ```
 
 ### 3. Subir a stack (Banco + API)
@@ -31,6 +37,7 @@ npm run prisma:seed
 
 A API estará disponível em `http://localhost:3000/api/v1`.  
 Para explorar via Swagger, acesse `http://localhost:3000/api/docs`.
+Quando subir a stack com observabilidade, o Grafana estará disponível em `http://localhost:3001`.
 > O arquivo Insomnia pode ser encontrado em `docs/Insomnia_2026-06-30.yaml`.
 
 ## Qualidade Básica
@@ -41,6 +48,11 @@ Antes de commitar, certifique-se de rodar os testes e a validação básica:
 npm run lint
 npm test
 npm run build
+```
+
+Para uma revisão local assistida por IA, use o fluxo descrito em `docs/08-revisao-com-ia.md`:
+```txt
+Use .codex/local-review-prompt.md e revise minhas alterações locais ainda não commitadas.
 ```
 
 ---
