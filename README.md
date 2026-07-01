@@ -1,495 +1,60 @@
-# HIT Communications - Teste Tecnico TypeScript
+# HIT Communications - Incident Management API
 
-API REST para gerenciamento de incidentes operacionais, desenvolvida como teste tecnico para a HIT Communications.
+API REST para gerenciamento de incidentes operacionais, desenvolvida como teste técnico para a HIT Communications.
 
-O projeto implementa um monolito modular em NestJS com Clean Architecture orientada a DDD pragmatico: entidades ricas, aggregates bem delimitados, use cases explicitos, Repository Pattern, Unit of Work, CQRS leve com `@nestjs/cqrs`, Prisma ORM isolado na infraestrutura e JWT com access token no MVP.
+O projeto implementa um monólito modular em NestJS com Clean Architecture, DDD pragmático, CQRS leve, entidades de domínio ricas, Repository Pattern, Unit of Work, Prisma isolado na infraestrutura, JWT access token e senhas com Argon2id.
 
-## Stack
+## Quick Start
 
-- NestJS e TypeScript.
-- npm.
-- Prisma ORM.
-- PostgreSQL.
-- Docker e Docker Compose.
-- Zod.
-- Jest e Supertest.
-- Swagger/OpenAPI.
-- JWT.
-- Argon2id.
-- Pino/NestJS-Pino.
-- k6.
-- GitHub Actions.
+### 1. Instalar dependências
+```bash
+npm install
+```
 
-## Documentacao
-
-As decisoes e detalhes do projeto estao documentados em:
-
-- [docs/01-requisitos-do-teste.md](docs/01-requisitos-do-teste.md)
-- [docs/02-decisoes-tecnicas.md](docs/02-decisoes-tecnicas.md)
-- [docs/03-modelagem-e-api.md](docs/03-modelagem-e-api.md)
-- [docs/04-validacao-erros-e-historico.md](docs/04-validacao-erros-e-historico.md)
-- [docs/05-plano-de-testes.md](docs/05-plano-de-testes.md)
-- [docs/06-revisao-local-codex.md](docs/06-revisao-local-codex.md)
-- [docs/07-arquitetura-detalhada.md](docs/07-arquitetura-detalhada.md)
-- [docs/08-pos-mvp.md](docs/08-pos-mvp.md)
-- [docs/09-plano-de-implementacao.md](docs/09-plano-de-implementacao.md)
-- [docs/10-plano-logs-estruturados.md](docs/10-plano-logs-estruturados.md)
-- [docs/11-plano-benchmark-k6.md](docs/11-plano-benchmark-k6.md)
-- [docs/12-plano-observabilidade-local.md](docs/12-plano-observabilidade-local.md)
-
-Collection Insomnia:
-
-- [docs/Insomnia_2026-06-30.yaml](docs/Insomnia_2026-06-30.yaml)
-
-## Requisitos Locais
-
-- Node.js 24 LTS.
-- npm.
-- Docker Desktop.
-
-## Configuracao
-
-Crie o arquivo `.env` a partir do exemplo:
-
+### 2. Criar `.env`
 ```bash
 cp .env.example .env
 ```
 
-No Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Variaveis principais:
-
-```env
-NODE_ENV=development
-PORT=3000
-DATABASE_URL="postgresql://hit:hit@localhost:5432/hit_incidents?schema=public"
-DATABASE_URL_TEST="postgresql://hit:hit@localhost:5432/hit_incidents?schema=e2e_test"
-JWT_SECRET="change-me-in-local-development"
-JWT_EXPIRES_IN="1h"
-LOG_LEVEL="debug"
-LOG_FORMAT="pretty"
-GRAFANA_ADMIN_USER="admin"
-GRAFANA_ADMIN_PASSWORD="admin"
-```
-
-Conexao local com o PostgreSQL do Docker:
-
-```txt
-Host: localhost
-Port: 5432
-Database: hit_incidents
-User: hit
-Password: hit
-Schema: public
-```
-
-Dentro do Docker Compose, a API usa o host interno `postgres`:
-
-```txt
-postgresql://hit:hit@postgres:5432/hit_incidents?schema=public
-```
-
-## Rodando Localmente
-
-Para rodar o backend localmente usando o PostgreSQL do Docker:
-
+### 3. Subir a stack (Banco + API)
 ```bash
-npm install
-npm run prisma:generate
-docker compose up -d postgres
-npm run prisma:migrate:dev
-npm run prisma:seed
-npm run start:dev
+docker compose up -d --build
 ```
+> Para incluir métricas e logs (Loki, Grafana, Alloy), use `docker compose --profile observability up -d --build`
 
-A API ficara disponivel em:
-
-```txt
-http://localhost:3000/api/v1
-```
-
-Swagger:
-
-```txt
-http://localhost:3000/api/docs
-```
-
-Para rodar API e PostgreSQL no Docker Compose:
-
-```bash
-docker compose --profile api up --build
-```
-
-## Prisma
-
-Gerar Prisma Client:
-
+### 4. Preparar o banco de dados e popular com dados de teste
 ```bash
 npm run prisma:generate
-```
-
-Criar/aplicar migration em desenvolvimento:
-
-```bash
-npm run prisma:migrate:dev
-```
-
-Aplicar migrations existentes:
-
-```bash
-npm run prisma:migrate:deploy
-```
-
-Abrir Prisma Studio:
-
-```bash
-npm run prisma:studio
-```
-
-## Seed
-
-O seed popula usuarios e incidentes demo para avaliacao manual:
-
-```bash
-npm run prisma:seed
-```
-
-Usuarios padrao:
-
-```txt
-Admin: admin@hit.local / Admin123!
-User:  user@hit.local / User123!
-```
-
-IDs estaveis dos usuarios:
-
-```txt
-Admin: cf859f02-e83f-4b78-8f5b-6944ca5fd38a
-User:  356b57c6-9b8a-4576-8df6-cbd9799d8295
-```
-
-O seed cria 16 incidentes demo:
-
-- 14 incidentes ativos e 2 incidentes removidos logicamente.
-- 4 incidentes por status: `OPEN`, `IN_PROGRESS`, `RESOLVED` e `CANCELED`.
-- Prioridades distribuidas entre `LOW`, `MEDIUM`, `HIGH` e `CRITICAL`.
-- Categorias distribuidas entre `SYSTEM`, `NETWORK`, `INFRASTRUCTURE`, `ACCESS`, `DATA` e `PROCESS`.
-- Responsaveis alternados entre os usuarios padrao.
-- Datas de criacao e resolucao espalhadas para testar filtros por periodo.
-- Historico de alteracoes em parte dos incidentes, incluindo resolucoes com `status` e `resolvedAt`.
-
-Os incidentes demo usam IDs estaveis no formato:
-
-```txt
-10000000-0000-4000-8000-000000000001
-...
-10000000-0000-4000-8000-000000000016
-```
-
-Esses dados sao voltados para Swagger, Insomnia e chamadas locais. A suite e2e usa schema isolado e dados proprios.
-
-## Rotas
-
-Todas as rotas da API usam o prefixo global:
-
-```txt
-/api/v1
-```
-
-Auth:
-
-```txt
-POST /api/v1/auth/register
-POST /api/v1/auth/login
-GET  /api/v1/auth/me
-```
-
-Users:
-
-```txt
-GET /api/v1/users
-GET /api/v1/users/:id
-```
-
-Incidents:
-
-```txt
-POST   /api/v1/incidents
-GET    /api/v1/incidents
-GET    /api/v1/incidents/:id
-PATCH  /api/v1/incidents/:id
-PATCH  /api/v1/incidents/:id/resolve
-DELETE /api/v1/incidents/:id
-GET    /api/v1/incidents/:id/history
-```
-
-`POST /api/v1/auth/register` e `POST /api/v1/auth/login` sao publicos. As demais rotas exigem JWT bearer token.
-
-## Logs Estruturados
-
-A API usa `nestjs-pino`/Pino como logger global.
-
-- Logs HTTP sao emitidos em JSON estruturado.
-- Toda resposta recebe `x-request-id`.
-- Quando o cliente envia `x-request-id`, o valor e preservado.
-- Quando ausente, a API gera um UUID.
-- Campos sensiveis como senha, hash, token, `Authorization`, cookies e secrets sao mascarados.
-- Operacoes principais de auth, users e incidents registram `operation` e IDs seguros quando disponiveis.
-
-Nivel de log:
-
-```env
-LOG_LEVEL="debug"
-LOG_FORMAT="pretty"
-```
-
-`LOG_FORMAT=pretty` ativa `pino-pretty` apenas em `NODE_ENV=development`, deixando o terminal local mais legivel durante `npm run start:dev`.
-
-Para containers, producao e observabilidade com Grafana/Loki, mantenha JSON estruturado:
-
-```env
-LOG_FORMAT="json"
-```
-
-Em testes, o logger usa `silent` por padrao para evitar ruido, mesmo que `LOG_FORMAT=pretty` esteja definido.
-
-## Observabilidade Local
-
-O projeto inclui uma stack opcional com Grafana, Loki e Alloy para visualizar os logs dos containers Docker.
-
-Subir API, PostgreSQL e observabilidade:
-
-```bash
-docker compose --profile api --profile observability up --build
-```
-
-Se o banco ainda nao tiver tabelas e dados demo, rode antes:
-
-```bash
-docker compose up -d postgres
 npm run prisma:migrate:dev
 npm run prisma:seed
 ```
 
-Acessos locais:
+A API estará disponível em `http://localhost:3000/api/v1`.  
+Para explorar via Swagger, acesse `http://localhost:3000/api/docs`.
+> O arquivo Insomnia pode ser encontrado em `docs/Insomnia_2026-06-30.yaml`.
 
-```txt
-Grafana: http://localhost:3001
-User: admin
-Password: admin
-Loki: http://localhost:3100
-Alloy: http://localhost:12345
-```
+## Qualidade Básica
 
-O Grafana ja sobe com datasource Loki e dashboard `HIT API Logs` provisionados.
-
-Queries LogQL uteis:
-
-```txt
-{service="api"} | json
-```
-
-```txt
-{service="api"} | json | operation="incident.resolve"
-```
-
-```txt
-{service="api"} | json | requestId="abc-123"
-```
-
-```txt
-{service="api"} | json | incidentId="10000000-0000-4000-8000-000000000001"
-```
-
-Observacao: Alloy coleta logs dos containers com label `hit.service=api`. Se voce rodar a API via `npm run start:dev`, use os logs do terminal com `pino-pretty`; para ver no Grafana, rode a API pelo Docker Compose.
-
-## Benchmark Local
-
-O projeto inclui cenarios k6 para smoke, baseline, load, stress, spike e soak.
-
-Preparar banco e dados demo uma vez:
-
-```bash
-npm run bench:db
-npm run bench:prepare
-```
-
-O `bench:db` aguarda o PostgreSQL ficar healthy. Para o `bench:prepare`,
-deixe o `DATABASE_URL` local apontando para `localhost:5432`, pois esse comando
-roda fora da rede Docker.
-
-Subir a stack em Docker:
-
-```bash
-docker compose --profile api up --build
-```
-
-Ou, se quiser Grafana/Loki junto:
-
-```bash
-docker compose --profile api --profile observability up --build
-```
-
-Depois que a API estiver rodando no Compose, use outro terminal para executar os
-cenarios k6:
-
-```bash
-npm run k6:smoke
-npm run k6:baseline
-npm run k6:load
-```
-
-Os cenarios exploratorios ficam separados porque geram mais carga:
-
-```bash
-npm run k6:stress
-npm run k6:spike
-npm run k6:soak
-```
-
-Se preferir subir a API em background, os atalhos antigos continuam disponiveis:
-
-```bash
-npm run bench:stack
-npm run bench:stack:observability
-```
-
-Os summaries sao gerados em:
-
-```txt
-benchmarks/results/
-```
-
-Variaveis principais:
-
-```txt
-K6_EMAIL
-K6_PASSWORD
-K6_ASSIGNEE_ID
-K6_INCIDENT_ID
-K6_THINK_TIME_SECONDS
-K6_REQUEST_TIMEOUT
-```
-
-Ao rodar k6 via Docker Compose, o `K6_BASE_URL` padrao e `http://api:3000/api/v1`. Se rodar k6 instalado diretamente na maquina, use `K6_BASE_URL=http://localhost:3000/api/v1`.
-
-Os benchmarks sao uma linha de base local. Registre ambiente, commit, modo de execucao da API e tamanho do dataset antes de comparar resultados.
-
-## Testes
-
-Rodar lint:
+Antes de commitar, certifique-se de rodar os testes e a validação básica:
 
 ```bash
 npm run lint
-```
-
-Rodar testes unitarios:
-
-```bash
 npm test
-```
-
-Rodar build:
-
-```bash
 npm run build
 ```
 
-Rodar e2e com PostgreSQL real:
+---
 
-```bash
-docker compose up -d postgres
-npm run test:e2e
-```
+## Documentação Completa
 
-A suite e2e exige `DATABASE_URL_TEST`. Por seguranca, a URL precisa informar um schema explicito iniciado por `e2e_`, como:
+Todas as decisões técnicas, guias e detalhes profundos do projeto foram movidos para a pasta `docs/`. Consulte os arquivos abaixo de acordo com sua necessidade:
 
-```env
-DATABASE_URL_TEST="postgresql://hit:hit@localhost:5432/hit_incidents?schema=e2e_test"
-```
-
-O harness e2e falha antes de migrations ou limpeza se a URL usar `schema=public`, nao tiver schema ou usar um schema fora do prefixo `e2e_`.
-
-## Insomnia
-
-A collection esta em:
-
-```txt
-docs/Insomnia_2026-06-30.yaml
-```
-
-Ela usa variaveis de ambiente para:
-
-- `BaseURL`
-- `ApiVersion`
-- `JWToken`
-- usuarios seedados
-- incidentes seedados
-
-Fluxo sugerido:
-
-1. Rode `npm run prisma:seed`.
-2. Use a request `Auth / Login`.
-3. Copie o `accessToken` retornado para a variavel `JWToken`.
-4. Execute as requests protegidas.
-
-## CI
-
-O workflow GitHub Actions esta em:
-
-```txt
-.github/workflows/ci.yml
-```
-
-Ele roda em `push` e `pull_request`:
-
-- `npm ci`
-- `npm run prisma:generate`
-- `npm run lint`
-- `npm test -- --runInBand`
-- `npm run build`
-- `npm run test:e2e`
-
-O CI sobe PostgreSQL 16 como service e usa `DATABASE_URL_TEST` com `schema=e2e_ci`.
-
-## Decisoes Importantes Do MVP
-
-- JWT apenas com access token.
-- Sem refresh token no MVP.
-- Senhas com Argon2id.
-- `Incident` e `User` sao aggregate roots.
-- `IncidentHistory` e registro de auditoria associado ao incidente.
-- IDs UUID.
-- Soft delete com `deletedAt`.
-- Queries padrao ignoram registros com `deletedAt`.
-- Datas em UTC e expostas em ISO 8601.
-- Prisma fica isolado na infraestrutura.
-- Use cases nao importam Prisma, Nest HTTP, controllers ou detalhes de infraestrutura.
-- Controllers sao finos e delegam para use cases.
-- Atualizacao de incidente e historico sao persistidos na mesma transacao via Unit of Work.
-- Historico obrigatorio nao e implementado por evento assincrono.
-- `PATCH /api/v1/incidents/:id` nao aceita `status = RESOLVED`.
-- Resolucao ocorre por `PATCH /api/v1/incidents/:id/resolve`.
-- `DELETE /api/v1/incidents/:id` faz soft delete.
-- Paginacao usa `page` default `1`, `limit` default `10` e `limit` maximo `100`.
-- Ordenacao padrao da listagem de incidentes: `createdAt desc`.
-- Logs estruturados com `requestId`, redaction e operacoes principais.
-
-## Pos-MVP
-
-Ficaram documentados como evolucao futura:
-
-- Regras especificas por role.
-- Purge/anonimizacao de soft delete antigo.
-- Observabilidade avancada de producao com OpenTelemetry, metricas, alertas e envio para ferramenta externa.
-- Migracao eventual de Jest para Vitest.
-- CQRS completo com read models/projecoes, se houver necessidade.
-- DDD mais profundo com bounded contexts reais, se o dominio crescer.
-- Mensageria duravel/outbox.
-- Refresh token, se o escopo de autenticacao evoluir.
-
-Detalhes em [docs/08-pos-mvp.md](docs/08-pos-mvp.md).
+| Documento                                                                   | Conteúdo |
+|-----------------------------------------------------------------------------| --- |
+| [01 - Requisitos](docs/01-requisitos.md)                                    | Escopo funcional e não funcional do teste |
+| [02 - Decisões e Trade-offs](docs/02-decisoes-e-tradeoffs.md)               | Decisões técnicas com foco em por que foram escolhidas |
+| [03 - Arquitetura](docs/03-arquitetura.md)                                  | Organização interna, fluxo e regras de fronteira |
+| [04 - Modelagem e API](docs/04-modelagem-e-api.md)                          | Entidades, enums e rotas HTTP (veja também o arquivo Insomnia) |
+| [05 - Testes e Qualidade](docs/05-testes-e-qualidade.md)                    | Estratégia de testes locais, E2E com DB real e workflow do CI |
+| [06 - Observabilidade e Benchmark](docs/06-observabilidade-e-benchmark.md)  | Logs estruturados (Grafana/Loki/Alloy) e performance (K6) |
+| [07 - Pós-MVP](docs/07-pos-mvp.md)                                          | Evoluções e funcionalidades mapeadas mas fora do escopo inicial |
