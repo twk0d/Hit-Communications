@@ -58,3 +58,4 @@ Todas as decisões técnicas, guias e detalhes profundos do projeto foram movido
 | [05 - Testes e Qualidade](docs/05-testes-e-qualidade.md)                    | Estratégia de testes locais, E2E com DB real e workflow do CI |
 | [06 - Observabilidade e Benchmark](docs/06-observabilidade-e-benchmark.md)  | Logs estruturados (Grafana/Loki/Alloy) e performance (K6) |
 | [07 - Pós-MVP](docs/07-pos-mvp.md)                                          | Evoluções e funcionalidades mapeadas mas fora do escopo inicial |
+| [08 - Revisão com IA](docs/08-revisao-com-ia.md)                            | Fluxo de automação de Code Review local via IA (Codex) |
